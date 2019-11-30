@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"dpimageupdate"
 	"io"
 	"log"
 	"net/http"
 	"time"
 )
 
-//定义一个map来实现路由转发
-
+//定义map来实现路由转发
 var mux map[string]func(http.ResponseWriter, *http.Request)
 type myHandler struct{}
 
@@ -20,25 +19,22 @@ func main(){
 		ReadTimeout: 5*time.Second,
 	}
 	mux = make(map[string]func(http.ResponseWriter, *http.Request))
-	mux["/tmp"] = Tmp
-
+	route(mux)
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
+// 路由
+func route(mux map[string]func(http.ResponseWriter, *http.Request)){
+	//mux["/tmp"] = Tmp
+	//镜像更新
+	mux["/dpupdate"] = Dpupdate
+}
+
 func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	//实现路由的转发
-	fmt.Printf("%T", r.URL)
-	a,b := mux[r.URL.String()]
-	fmt.Println(a,b)
-	fmt.Println(r)
-	//k := "sssss"
-	//s := []byte(k)
-	fmt.Println(r.Method)
-	fmt.Println(r.URL)
-	fmt.Println(r.Header)
 	if h, ok := mux[r.URL.String()];ok{
 		//用这个handler实现路由转发，相应的路由调用相应func
 		h(w, r)
@@ -47,7 +43,11 @@ func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	io.WriteString(w, "URL:"+r.URL.String())
 }
 
-func Tmp(w http.ResponseWriter, r *http.Request) {
+//func Tmp(w http.ResponseWriter, r *http.Request) {
+//	io.WriteString(w, "version 3")
+//}
+
+func Dpupdate(w http.ResponseWriter, r *http.Request){
+	dpimageupdate.Main()
 	io.WriteString(w, "version 3")
 }
-
