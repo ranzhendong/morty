@@ -2,6 +2,7 @@ package main
 
 import (
 	"dpimageupdate"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +13,10 @@ import (
 var mux map[string]func(http.ResponseWriter, *http.Request)
 
 type myHandler struct{}
+
+func init() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
 
 func main() {
 	server := http.Server{
@@ -41,14 +46,14 @@ func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h(w, r)
 		return
 	}
-	io.WriteString(w, "URL:"+r.URL.String())
+	_, _ = io.WriteString(w, "URL:"+r.URL.String())
 }
 
-//func Tmp(w http.ResponseWriter, r *http.Request) {
-//	io.WriteString(w, "version 3")
-//}
-
 func Dpupdate(w http.ResponseWriter, r *http.Request) {
-	dpimageupdate.Main(r)
-	io.WriteString(w, "version 3")
+	//c := dpimageupdate.Main(r)
+	if err := dpimageupdate.Main(r); err != nil {
+		_, _ = io.WriteString(w, fmt.Sprint(err))
+		return
+	}
+	_, _ = io.WriteString(w, "Deployment Image Update Complete!")
 }
