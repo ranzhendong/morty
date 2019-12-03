@@ -1,6 +1,8 @@
 package main
 
 import (
+	"configanalysis"
+	"datastructure"
 	"dpimageupdate"
 	"fmt"
 	"io"
@@ -10,15 +12,25 @@ import (
 )
 
 //定义map来实现路由转发
-var mux map[string]func(http.ResponseWriter, *http.Request)
+var (
+	mux    map[string]func(http.ResponseWriter, *http.Request)
+	config datastructure.Config
+	err    error
+)
 
 type myHandler struct{}
 
+//初始化log函数
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func main() {
+	err, config = configanalysis.LoadConfig()
+	if err != nil {
+		return
+	}
+	fmt.Println()
 	server := http.Server{
 		Addr:        ":8080",
 		Handler:     &myHandler{},
@@ -26,32 +38,29 @@ func main() {
 	}
 	mux = make(map[string]func(http.ResponseWriter, *http.Request))
 	route(mux)
-	err := server.ListenAndServe()
-	if err != nil {
+	if err = server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 // 路由
 func route(mux map[string]func(http.ResponseWriter, *http.Request)) {
-	//mux["/tmp"] = Tmp
 	//镜像更新
 	mux["/dpupdate"] = Dpupdate
 }
 
+//路由的转发
 func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//实现路由的转发
 	if h, ok := mux[r.URL.String()]; ok {
 		//用这个handler实现路由转发，相应的路由调用相应func
 		h(w, r)
 		return
 	}
-	_, _ = io.WriteString(w, "URL:"+r.URL.String())
+	_, _ = io.WriteString(w, "URL:"+r.URL.String()+"IS NOT EXIST")
 }
 
 func Dpupdate(w http.ResponseWriter, r *http.Request) {
-	//c := dpimageupdate.Main(r)
-	if err := dpimageupdate.Main(r); err != nil {
+	if err := dpimageupdate.Main(r, config); err != nil {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return
 	}
