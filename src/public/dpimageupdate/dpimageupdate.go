@@ -57,7 +57,9 @@ func Main(r *http.Request, c datastructure.Config) (err error) {
 	//if err, _ = k8sapi.APIServerPut(newDeploymentByte, deploymentUrl); err != nil {
 	//	return
 	//}
-	alert.Ding()
+	if err = alert.Ding(a); err == nil {
+		log.Println("alert.Ding()")
+	}
 	return
 }
 

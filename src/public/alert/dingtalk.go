@@ -12,15 +12,18 @@ import (
 	"strings"
 )
 
-var Charset = "Charset"
-var ContentType = "application/json"
-var DingTalkUrl = "https://oapi.dingtalk.com/robot/send?access_token=b68f9f215f42355dbb972c00e8904ede603ead7177fd176c570085ab0e625ea6"
+var (
+	Charset     = "Charset"
+	ContentType = "application/json"
+	DingTalkUrl = "https://oapi.dingtalk.com/robot/send?access_token=edaef5c4adce3689970145a797da0a33f1da05b12f3573bc9b8196c2f844f6d6"
+)
 
-func Ding() (err error) {
+func Ding(a datastructure.Request) (err error) {
 	var (
 		b, bodyContentByte []byte
 		d                  datastructure.DingTalk
 		content, subject   string
+		//f                  [1]string
 	)
 	// 忽略证书校验
 	tr := &http.Transport{
@@ -35,7 +38,6 @@ func Ding() (err error) {
 	if b, err = json.Marshal(d); err == nil {
 		log.Printf("Send %v TO DingTalk", string(b))
 	}
-
 	body := new(bytes.Buffer)
 	body.ReadFrom(bytes.NewBuffer([]byte(strings.ToLower(string(b)))))
 

@@ -31,10 +31,16 @@ type MyList struct {
 type DingTalk struct {
 	Msgtype string
 	Text    Text
+	At      At
 }
 
 type Text struct {
 	Content string
+}
+
+type At struct {
+	AtMobiles [1]string
+	IsAtAll   string
 }
 
 type F interface {
