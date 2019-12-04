@@ -3,15 +3,16 @@ package user
 import (
 	"datastructure"
 	"fmt"
+	"log"
 )
 
 func User(a datastructure.Request, c datastructure.Config) (err error) {
-	fmt.Println("RequestDataStructure:", a)
-	fmt.Println("Config:", c)
+	//fmt.Println("RequestDataStructure:", a)
+	//fmt.Println("Config:", c)
 	//if a.Info.RequestMan ==
 	for _, c := range c.Userlist {
 		if c.Name == a.Info.RequestMan && c.PhoneNumber == a.Info.PhoneNumber {
-			fmt.Println("GET THE MAN", c.Name)
+			log.Println("GET THE MAN", c.Name)
 			return
 		}
 	}

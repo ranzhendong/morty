@@ -5,7 +5,10 @@ type Request struct {
 	Deployment    string `json:"deployment"`
 	NameSpace     string `json:"namespace"`
 	DeploymentApi string `json:"deploymentapi"`
+	JavaProject   string `json:"javaProject"`
+	Version       string `json:"version"`
 	Image         string `json:"image"`
+	SendFormat    string `json:"sendFormat"`
 	Info          Info   `json:"info"`
 }
 
@@ -28,19 +31,32 @@ type MyList struct {
 	PhoneNumber string `yaml:"phonenumber"`
 }
 
-type DingTalk struct {
-	Msgtype string
-	Text    Text
-	At      At
+//text文本提醒
+type DingText struct {
+	Msgtype string `json:"msgtype"`
+	Text    Text   `json:"text"`
+	At      At     `json:"at"`
+}
+
+//markdown文本提醒
+type DingMarkDown struct {
+	Msgtype  string   `json:"msgtype"`
+	MarkDown MarkDown `json:"markdown"`
+	At       At       `json:"at"`
 }
 
 type Text struct {
-	Content string
+	Content string `json:"content"`
+}
+
+type MarkDown struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
 }
 
 type At struct {
-	AtMobiles [1]string
-	IsAtAll   string
+	AtMobiles [1]string `json:"atMobiles"`
+	IsAtAll   string    `json:"isAtAll"`
 }
 
 type F interface {

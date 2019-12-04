@@ -30,7 +30,6 @@ func main() {
 	if err != nil {
 		return
 	}
-	fmt.Println()
 	server := http.Server{
 		Addr:        ":8080",
 		Handler:     &myHandler{},
