@@ -72,7 +72,7 @@ func Ding(a datastructure.Request) (err error) {
 			},
 		}
 		if b, err = json.Marshal(d); err == nil {
-			fmt.Printf("Send TO DingTalk %v ", string(b))
+			log.Printf("Send TO DingTalk %v ", string(b))
 		}
 	}
 

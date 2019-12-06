@@ -5,3 +5,9 @@ userlist:
   - name: haiquan
     chinesename: 海权
     phonenumber: 17600376226
+kubenetes:
+  host: https://172.16.0.60:6443
+  tokenfile:
+  deploymentapi: /apis/extensions/v1beta1
+dingding:
+  robotsurl: https://oapi.dingtalk.com/robot/send?access_token=edaef5c4adce3689970145a797da0a33f1da05b12f3573bc9b8196c2f844f6d6

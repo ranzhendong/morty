@@ -43,7 +43,7 @@ func conf(confFilePath string) string {
 }
 
 //主函数读取配置
-func LoadConfig() (err error, c datastructure.Config) {
+func OldLoadConfig() (err error, c datastructure.Config) {
 	var (
 		yamlContent            []uint8
 		confFilePath, confName string

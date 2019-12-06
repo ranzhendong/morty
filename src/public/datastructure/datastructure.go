@@ -21,7 +21,9 @@ type Info struct {
 
 //配置文件
 type Config struct {
-	Userlist []MyList `yaml:"userlist"`
+	Userlist  []MyList  `yaml:"userlist"`
+	Kubenetes Kubenetes `yaml:"kubenetes"`
+	DingDing  DingDing  `yaml:"dingding"`
 }
 
 //用户列表
@@ -29,6 +31,18 @@ type MyList struct {
 	Name        string `yaml:"name"`
 	ChineseName string `yaml:"chinesename"`
 	PhoneNumber string `yaml:"phonenumber"`
+}
+
+//k8s配置
+type Kubenetes struct {
+	Host          string `yaml:"host"`
+	TokenFile     string `yaml:"tokenfile"`
+	DeploymentApi string `yaml:"deploymentapi"`
+}
+
+//钉钉配置
+type DingDing struct {
+	Robotsurl string `yaml:"robotsurl"`
 }
 
 //text文本提醒

@@ -5,6 +5,7 @@ import (
 	"datastructure"
 	"encoding/json"
 	"io/ioutil"
+	"k8sapi"
 	"log"
 	"net/http"
 	"user"
@@ -13,15 +14,15 @@ import (
 const DeploymentApi = "/apis/extensions/v1beta1"
 
 func Main(r *http.Request, c datastructure.Config) (err error) {
-	//var (
-	//	a                                        datastructure.Request
-	//	bodyContentByte, newDeploymentByte, body []byte
-	//	deploymentUrl                            string
-	//)
 	var (
-		a    datastructure.Request
-		body []byte
+		a                                        datastructure.Request
+		bodyContentByte, newDeploymentByte, body []byte
+		deploymentUrl                            string
 	)
+	//var (
+	//	a    datastructure.Request
+	//	body []byte
+	//)
 	// if the body exist
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
 		log.Printf("Read Body ERR: %v\n", err)
@@ -45,18 +46,18 @@ func Main(r *http.Request, c datastructure.Config) (err error) {
 	if parameter, err := json.Marshal(a); err == nil {
 		log.Println(string(parameter))
 	}
-	//// get deployment info from apiserver
-	//if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a.Deployment, a.NameSpace, a.DeploymentApi); err != nil {
-	//	return
-	//}
-	//// replace the image from old to new
-	//if err, newDeploymentByte = imageReplace(a, bodyContentByte); err != nil {
-	//	return
-	//}
-	//// put the new deployment info to apiserver
-	//if err, _ = k8sapi.APIServerPut(newDeploymentByte, deploymentUrl); err != nil {
-	//	return
-	//}
+	// get deployment info from apiserver
+	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a.Deployment, a.NameSpace, a.DeploymentApi); err != nil {
+		return
+	}
+	// replace the image from old to new
+	if err, newDeploymentByte = imageReplace(a, bodyContentByte); err != nil {
+		return
+	}
+	// put the new deployment info to apiserver
+	if err, _ = k8sapi.APIServerPut(newDeploymentByte, deploymentUrl); err != nil {
+		return
+	}
 	if err = alert.Ding(a); err == nil {
 		log.Println("alert.Ding()")
 	}

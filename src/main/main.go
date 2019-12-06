@@ -26,7 +26,9 @@ func init() {
 }
 
 func main() {
-	err, config = configanalysis.LoadConfig()
+	configanalysis.NewLoadConfig()
+	fmt.Println("OldLoadConfig")
+	err, config = configanalysis.OldLoadConfig()
 	if err != nil {
 		return
 	}
