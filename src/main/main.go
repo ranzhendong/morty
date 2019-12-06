@@ -2,7 +2,6 @@ package main
 
 import (
 	"configanalysis"
-	"datastructure"
 	"dpimageupdate"
 	"fmt"
 	"io"
@@ -13,9 +12,8 @@ import (
 
 //定义map来实现路由转发
 var (
-	mux    map[string]func(http.ResponseWriter, *http.Request)
-	config datastructure.Config
-	err    error
+	mux map[string]func(http.ResponseWriter, *http.Request)
+	err error
 )
 
 type myHandler struct{}
@@ -26,10 +24,8 @@ func init() {
 }
 
 func main() {
-	configanalysis.NewLoadConfig()
-	fmt.Println("OldLoadConfig")
-	err, config = configanalysis.OldLoadConfig()
-	if err != nil {
+	//config init
+	if err = configanalysis.NewLoadConfig(); err != nil {
 		return
 	}
 	server := http.Server{
@@ -61,7 +57,7 @@ func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func Dpupdate(w http.ResponseWriter, r *http.Request) {
-	if err := dpimageupdate.Main(r, config); err != nil {
+	if err := dpimageupdate.Main(r); err != nil {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return
 	}

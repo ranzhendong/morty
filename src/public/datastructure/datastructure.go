@@ -21,13 +21,13 @@ type Info struct {
 
 //配置文件
 type Config struct {
-	Userlist  []MyList  `yaml:"userlist"`
-	Kubenetes Kubenetes `yaml:"kubenetes"`
-	DingDing  DingDing  `yaml:"dingding"`
+	Userlist  []Userlist `yaml:"userlist"`
+	Kubenetes Kubenetes  `yaml:"kubenetes"`
+	DingDing  DingDing   `yaml:"dingding"`
 }
 
 //用户列表
-type MyList struct {
+type Userlist struct {
 	Name        string `yaml:"name"`
 	ChineseName string `yaml:"chinesename"`
 	PhoneNumber string `yaml:"phonenumber"`

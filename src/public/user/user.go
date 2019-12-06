@@ -3,13 +3,18 @@ package user
 import (
 	"datastructure"
 	"fmt"
+	"github.com/spf13/viper"
 	"log"
 )
 
-func User(a datastructure.Request, c datastructure.Config) (err error) {
-	//fmt.Println("RequestDataStructure:", a)
-	//fmt.Println("Config:", c)
-	//if a.Info.RequestMan ==
+func User(a datastructure.Request) (err error) {
+	var (
+		c datastructure.Config
+	)
+	if err = viper.Unmarshal(&c); err != nil {
+		log.Fatalf("Unable To Decode Into struct, %v", err)
+		return
+	}
 	for _, c := range c.Userlist {
 		if c.Name == a.Info.RequestMan && c.PhoneNumber == a.Info.PhoneNumber {
 			log.Println("GET THE MAN", c.Name)

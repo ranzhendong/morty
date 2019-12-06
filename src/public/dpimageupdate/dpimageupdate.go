@@ -13,7 +13,7 @@ import (
 
 const DeploymentApi = "/apis/extensions/v1beta1"
 
-func Main(r *http.Request, c datastructure.Config) (err error) {
+func Main(r *http.Request) (err error) {
 	var (
 		a                                        datastructure.Request
 		bodyContentByte, newDeploymentByte, body []byte
@@ -35,7 +35,7 @@ func Main(r *http.Request, c datastructure.Config) (err error) {
 		return
 	}
 	//judge the user if exist
-	if err = user.User(a, c); err != nil {
+	if err = user.User(a); err != nil {
 		return
 	}
 	// if DeploymentApi is not specified
@@ -47,7 +47,7 @@ func Main(r *http.Request, c datastructure.Config) (err error) {
 		log.Println(string(parameter))
 	}
 	// get deployment info from apiserver
-	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a.Deployment, a.NameSpace, a.DeploymentApi); err != nil {
+	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a.Deployment, a.NameSpace); err != nil {
 		return
 	}
 	// replace the image from old to new
