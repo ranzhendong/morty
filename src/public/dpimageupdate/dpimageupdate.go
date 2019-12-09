@@ -4,6 +4,7 @@ import (
 	"alert"
 	"datastructure"
 	"encoding/json"
+	"fmt"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"k8sapi"
@@ -18,7 +19,8 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 	var (
 		a                                        datastructure.Request
 		bodyContentByte, newDeploymentByte, body []byte
-		deploymentUrl                            string
+		f                                        [1]string
+		deploymentUrl, content                   string
 	)
 	// if the body exist
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
@@ -58,8 +60,12 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	//dingding alert
-	if err = alert.Ding(a); err == nil {
-		log.Println("alert.Ding()")
+	content, f = alert.Main(r.URL.String(), a)
+	if err = alert.Ding(content, f, a.SendFormat); err != nil {
+		log.Printf("[DpImageDate] Dingding ERROR:[%s]", err)
+		err = fmt.Errorf("[DpImageDate] Dingding ERROR:[%v] %v", err,
+			"\n DingAlert Filed, But Request Has Been Done, Do Not Worry !")
+		return
 	}
 	return
 }
