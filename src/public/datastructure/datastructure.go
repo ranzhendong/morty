@@ -77,15 +77,3 @@ type At struct {
 	AtMobiles [1]string `json:"atMobiles"`
 	IsAtAll   string    `json:"isAtAll"`
 }
-
-type F interface {
-	Sfs()
-}
-
-func (r *Request) Sfs() *Request {
-	return r
-}
-
-func (r *Info) Sfs() *Info {
-	return r
-}

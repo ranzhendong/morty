@@ -24,12 +24,9 @@ func changePath(pwd string) string {
 }
 
 //支持指定配置文件路径
-func conf(confFilePath string) (confpath, tokenpah string) {
-	var (
-		absoluteconf, tokenfile string
-	)
-	flag.StringVar(&absoluteconf, "f", confFilePath, "default absolute conf is 'relative path+config.yaml'")
-	flag.StringVar(&tokenfile, "t", "", "default absolute tokenfile is 'relative path+tokenfile'")
+func conf() (absoluteConf, tokenFile string) {
+	flag.StringVar(&absoluteConf, "f", "", "default absolute conf is 'relative path+config.yaml'")
+	flag.StringVar(&tokenFile, "t", "", "default absolute tokenfile is 'relative path+tokenfile'")
 	flag.Parse()
 	return
 }

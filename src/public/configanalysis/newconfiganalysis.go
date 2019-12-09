@@ -9,7 +9,7 @@ import (
 
 func NewLoadConfig() (err error, token *viper.Viper) {
 	var (
-		pwd, newConfFilePath, tokenFile string
+		pwd, absoluteConf, tokenFile string
 	)
 
 	//读取文件初始化
@@ -42,12 +42,14 @@ func NewLoadConfig() (err error, token *viper.Viper) {
 	log.Println("[LoadConfig] Morty Is Running, Execute Path", pwd)
 
 	//if cli has two parameters -f  and -t
-	newConfFilePath, tokenFile = conf(changePath(pwd) + "/")
-	if newConfFilePath != "" {
-		viper.AddConfigPath(newConfFilePath)
+	absoluteConf, tokenFile = conf()
+	if absoluteConf != "" {
+		viper.AddConfigPath(absoluteConf)
+		log.Println("[LoadConfig] Get Config Path ", absoluteConf)
 	}
 	if tokenFile != "" {
 		token.AddConfigPath(tokenFile)
+		log.Println("[LoadConfig] Get Token Path ", tokenFile)
 	}
 
 	//Find and read the config and token file
