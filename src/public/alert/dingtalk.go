@@ -57,7 +57,7 @@ func Ding(a datastructure.Request) (err error) {
 			},
 		}
 		if b, err = json.Marshal(d); err == nil {
-			log.Printf("Send TO DingTalk %v ", string(b))
+			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	} else {
 		var d = datastructure.DingMarkDown{
@@ -72,7 +72,7 @@ func Ding(a datastructure.Request) (err error) {
 			},
 		}
 		if b, err = json.Marshal(d); err == nil {
-			log.Printf("Send TO DingTalk %v ", string(b))
+			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	}
 
@@ -84,13 +84,17 @@ func Ding(a datastructure.Request) (err error) {
 	requestGet.Header.Add("Content-Type", ContentType)
 	resp, err := client.Do(requestGet)
 	if err != nil {
-		log.Printf("Get Request Failed ERR:[%s]", err.Error())
-		err = fmt.Errorf("Get Request Failed ERR:[%s]", err.Error())
+		log.Printf("[DingAlert] Post Request Failed ERR:[%s]", err.Error())
+		err = fmt.Errorf("[DingAlert] Post Request Failed ERR:[%s]", err.Error())
 		return
 	}
 	bodyContentByte, err = ioutil.ReadAll(resp.Body)
 	StatusCode := resp.StatusCode
 	bodyContent := string(bodyContentByte)
-	fmt.Println(StatusCode, bodyContent)
+	if StatusCode != 200 {
+		log.Printf("[DingAlert] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		err = fmt.Errorf("[DingDingAlert] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		return
+	}
 	return
 }

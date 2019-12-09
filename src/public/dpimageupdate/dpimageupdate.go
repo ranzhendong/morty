@@ -20,19 +20,15 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 		bodyContentByte, newDeploymentByte, body []byte
 		deploymentUrl                            string
 	)
-	//var (
-	//	a     datastructure.Request
-	//	body  []byte
-	//)
 	// if the body exist
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
-		log.Printf("Read Body ERR: %v\n", err)
+		log.Printf("[DpImageDate] Read Body ERR: %v\n", err)
 		return
 	}
 	//log.Println(string(body))
 	// if the body can be turn to json
 	if err = json.Unmarshal(body, &a); err != nil {
-		log.Printf("Unmarshal Body ERR: %v", err)
+		log.Printf("[DpImageDate] Unmarshal Body ERR: %v", err)
 		return
 	}
 
@@ -43,7 +39,7 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 
 	// log the parameter
 	if parameter, err := json.Marshal(a); err == nil {
-		log.Println("The Request Body:", string(parameter))
+		log.Printf("[DpImageDate] The Request Body: %v", string(parameter))
 	}
 
 	// get deployment info from apiserver
@@ -74,7 +70,7 @@ func imageReplace(a datastructure.Request, bodyContentByte []byte) (err error, n
 		deploymentMap map[string]interface{}
 	)
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
-		log.Println("Json TO DeploymentMap Json Change ERR: ", err)
+		log.Printf("[DpImageDate] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
 	//Containers := deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"]
@@ -84,7 +80,7 @@ func imageReplace(a datastructure.Request, bodyContentByte []byte) (err error, n
 	deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
 
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
-		log.Println("newDeploymentByte TO Json Change ERR: ", err)
+		log.Println("[DpImageDate] NewDeploymentByte TO Json Change ERR: ", err)
 		return
 	}
 	return

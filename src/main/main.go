@@ -55,7 +55,7 @@ func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h(w, r)
 		return
 	}
-	_, _ = io.WriteString(w, "URL:"+r.URL.String()+"IS NOT EXIST")
+	_, _ = io.WriteString(w, "[ServeHTTP] URL:"+r.URL.String()+"IS NOT EXIST")
 }
 
 func Dpupdate(w http.ResponseWriter, r *http.Request) {
@@ -63,5 +63,5 @@ func Dpupdate(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return
 	}
-	_, _ = io.WriteString(w, "Deployment Image Update Complete!")
+	_, _ = io.WriteString(w, "[Main.Dpupdate] Deployment Image Update Complete!")
 }

@@ -21,18 +21,18 @@ func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyC
 
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("Unable To Decode Into Config Struct, %v", err)
+		log.Fatalf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	if err = token.Unmarshal(&t); err != nil {
-		log.Fatalf("Unable To Decode Into Token Struct, %v", err)
+		log.Fatalf("[APIServerGet] Unable To Decode Into Token Struct, %v", err)
 		return
 	}
 
 	//assignment k8sHost and tokenFile
 	if c.Kubenetes.Host == "" {
-		log.Printf("Config  Kubenetes.Host Is %v ", c.Kubenetes.Host)
-		err = fmt.Errorf("Config  Kubenetes.Host Is %v ", c.Kubenetes.Host)
+		log.Printf("[APIServerGet] Config  Kubenetes.Host Is %v ", c.Kubenetes.Host)
+		err = fmt.Errorf("[APIServerGet] Config  Kubenetes.Host Is %v ", c.Kubenetes.Host)
 		return
 	}
 	if c.Kubenetes.TokenFile == "" {
@@ -61,8 +61,8 @@ func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyC
 
 	resp, err := client.Do(requestGet)
 	if err != nil {
-		log.Printf("Get Request Failed ERR:[%s]", err.Error())
-		err = fmt.Errorf("Get Request Failed ERR:[%s]", err.Error())
+		log.Printf("[APIServerGet] Get Request Failed ERR:[%s]", err.Error())
+		err = fmt.Errorf("[APIServerGet] Get Request Failed ERR:[%s]", err.Error())
 		return
 	}
 	defer resp.Body.Close()
@@ -71,12 +71,12 @@ func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyC
 	StatusCode := resp.StatusCode
 	bodyContent := string(bodyContentByte)
 	if StatusCode != 200 {
-		log.Printf("The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
-		err = fmt.Errorf("The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		log.Printf("[APIServerGet] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		err = fmt.Errorf("[APIServerGet] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
 		return
 
 	}
-	log.Println("GET The Deployment: ", bodyContent)
+	log.Println("[APIServerGet] GET The Deployment: ", bodyContent)
 	return
 }
 
@@ -89,11 +89,11 @@ func APIServerPut(newDeploymentByte []byte, deploymentUrl string, token *viper.V
 	)
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("Unable To Decode Into Config Struct, %v", err)
+		log.Fatalf("[APIServerPut] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	if err = token.Unmarshal(&t); err != nil {
-		log.Fatalf("Unable To Decode Into Token Struct, %v", err)
+		log.Fatalf("[APIServerPut] Unable To Decode Into Token Struct, %v", err)
 		return
 	}
 
@@ -120,8 +120,8 @@ func APIServerPut(newDeploymentByte []byte, deploymentUrl string, token *viper.V
 
 	resp, err := client.Do(requestGet)
 	if err != nil {
-		log.Printf("get request failed, err:[%s]", err.Error())
-		err = fmt.Errorf("PUT Request Failed ERR:[%s]", err.Error())
+		log.Printf("[APIServerPut] Put request failed, err:[%s]", err.Error())
+		err = fmt.Errorf("[APIServerPut] Put Request Failed ERR:[%s]", err.Error())
 		return
 	}
 	defer resp.Body.Close()
@@ -130,10 +130,10 @@ func APIServerPut(newDeploymentByte []byte, deploymentUrl string, token *viper.V
 	bodyContent = string(bodyContentByte)
 	StatusCode := resp.StatusCode
 	if StatusCode != 200 {
-		log.Printf("The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
-		err = fmt.Errorf("The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		log.Printf("[APIServerPut] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
+		err = fmt.Errorf("[APIServerPut] The StatusCode Is %v Bad Response: %v", StatusCode, bodyContent)
 		return
 	}
-	log.Println("PUT The Deployment: ", bodyContent)
+	log.Println("[APIServerPut] PUT The Deployment: ", bodyContent)
 	return
 }
