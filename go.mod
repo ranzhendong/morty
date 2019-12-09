@@ -16,6 +16,6 @@ replace configanalysis v1.11.3 => ./src/public/configanalysis
 
 require (
 	configanalysis v1.11.3
-	datastructure v1.11.3
 	dpimageupdate v1.11.3
+	github.com/spf13/viper v1.5.0
 )

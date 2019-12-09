@@ -40,6 +40,11 @@ type Kubenetes struct {
 	DeploymentApi string `yaml:"deploymentapi"`
 }
 
+// token file
+type Token struct {
+	Token string `json:"token"`
+}
+
 //钉钉配置
 type DingDing struct {
 	Robotsurl string `yaml:"robotsurl"`

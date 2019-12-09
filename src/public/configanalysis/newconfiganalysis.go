@@ -7,27 +7,28 @@ import (
 	"os"
 )
 
-func NewLoadConfig() (err error) {
+func NewLoadConfig() (err error, token *viper.Viper) {
 	var (
 		pwd, newConfFilePath, tokenFile string
-		config, token                   *viper.Viper
+		//config, token                   *viper.Viper
 	)
 
-	config = viper.New()
+	//读取文件初始化
 	token = viper.New()
 
-	//config init
-	config.SetConfigName("config")
-	config.SetConfigType("yaml")
-	config.AddConfigPath(".")
-	config.AddConfigPath("./config/")
+	//config and token init
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("./config/")
 	token.SetConfigName("token")
-	token.AddConfigPath("./token")
+	token.SetConfigType("json")
+	token.AddConfigPath(".")
 	token.AddConfigPath("./config/")
 
 	//watch the config change
-	config.WatchConfig()
-	config.OnConfigChange(func(e fsnotify.Event) {
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
 		log.Println("Config file changed:", e.Name)
 	})
 	token.WatchConfig()
@@ -44,13 +45,14 @@ func NewLoadConfig() (err error) {
 	//if cli has two parameters -f  and -t
 	newConfFilePath, tokenFile = conf(changePath(pwd) + "/")
 	if newConfFilePath != "" {
-		config.AddConfigPath(newConfFilePath)
+		viper.AddConfigPath(newConfFilePath)
 	}
 	if tokenFile != "" {
 		token.AddConfigPath(tokenFile)
 	}
+
 	//Find and read the config and token file
-	if err = config.ReadInConfig(); err != nil {
+	if err = viper.ReadInConfig(); err != nil {
 		log.Printf("Fatal Error Config File: %s \n", err)
 		return
 	}
@@ -58,10 +60,6 @@ func NewLoadConfig() (err error) {
 		log.Printf("Fatal Error Token File: %s \n", err)
 		return
 	}
-	//if err = viper.Unmarshal(&c); err != nil {
-	//	log.Fatalf("Unable To Decode Into struct, %v", err)
-	//	return
-	//}
-	//log.Println(c)
+
 	return
 }

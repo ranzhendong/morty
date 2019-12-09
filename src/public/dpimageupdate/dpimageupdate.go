@@ -4,6 +4,7 @@ import (
 	"alert"
 	"datastructure"
 	"encoding/json"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"k8sapi"
 	"log"
@@ -11,17 +12,17 @@ import (
 	"user"
 )
 
-const DeploymentApi = "/apis/extensions/v1beta1"
+//const DeploymentApi = "/apis/extensions/v1beta1"
 
-func Main(r *http.Request) (err error) {
+func Main(r *http.Request, token *viper.Viper) (err error) {
 	var (
 		a                                        datastructure.Request
 		bodyContentByte, newDeploymentByte, body []byte
 		deploymentUrl                            string
 	)
 	//var (
-	//	a    datastructure.Request
-	//	body []byte
+	//	a     datastructure.Request
+	//	body  []byte
 	//)
 	// if the body exist
 	if body, err = ioutil.ReadAll(r.Body); err != nil {
@@ -34,30 +35,33 @@ func Main(r *http.Request) (err error) {
 		log.Printf("Unmarshal Body ERR: %v", err)
 		return
 	}
+
 	//judge the user if exist
 	if err = user.User(a); err != nil {
 		return
 	}
-	// if DeploymentApi is not specified
-	if a.DeploymentApi == "" {
-		a.DeploymentApi = DeploymentApi
-	}
+
 	// log the parameter
 	if parameter, err := json.Marshal(a); err == nil {
-		log.Println(string(parameter))
+		log.Println("The Request Body:", string(parameter))
 	}
+
 	// get deployment info from apiserver
-	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a.Deployment, a.NameSpace); err != nil {
+	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a, token); err != nil {
 		return
 	}
+
 	// replace the image from old to new
 	if err, newDeploymentByte = imageReplace(a, bodyContentByte); err != nil {
 		return
 	}
+
 	// put the new deployment info to apiserver
-	if err, _ = k8sapi.APIServerPut(newDeploymentByte, deploymentUrl); err != nil {
+	if err, _ = k8sapi.APIServerPut(newDeploymentByte, deploymentUrl, token); err != nil {
 		return
 	}
+
+	//dingding alert
 	if err = alert.Ding(a); err == nil {
 		log.Println("alert.Ding()")
 	}

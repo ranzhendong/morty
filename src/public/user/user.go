@@ -12,7 +12,7 @@ func User(a datastructure.Request) (err error) {
 		c datastructure.Config
 	)
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("Unable To Decode Into struct, %v", err)
+		log.Fatalf("Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	for _, c := range c.Userlist {
@@ -21,6 +21,7 @@ func User(a datastructure.Request) (err error) {
 			return
 		}
 	}
+	log.Printf("{requestMan: %v} AND {phoneNumber: %v} NEED TO BE RIGHT！", a.Info.RequestMan, a.Info.PhoneNumber)
 	err = fmt.Errorf("{requestMan: %v} AND {phoneNumber: %v} NEED TO BE RIGHT！", a.Info.RequestMan, a.Info.PhoneNumber)
 	return
 }
