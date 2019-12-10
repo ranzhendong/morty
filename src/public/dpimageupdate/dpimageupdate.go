@@ -13,8 +13,6 @@ import (
 	"user"
 )
 
-//const DeploymentApi = "/apis/extensions/v1beta1"
-
 func Main(r *http.Request, token *viper.Viper) (err error) {
 	var (
 		a                                        datastructure.Request
@@ -59,8 +57,9 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	//dingding alert
+	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a)
+	//dingding alert
 	if err = alert.Ding(content, f, a.SendFormat); err != nil {
 		log.Printf("[DpImageDate] Dingding ERROR:[%s]", err)
 		err = fmt.Errorf("[DpImageDate] Dingding ERROR:[%v] %v", err,
@@ -72,19 +71,18 @@ func Main(r *http.Request, token *viper.Viper) (err error) {
 
 func imageReplace(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
 	var (
-		//a             requestdatastructure.RequestDataStructure
 		deploymentMap map[string]interface{}
 	)
+	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
 		log.Printf("[DpImageDate] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
-	//Containers := deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"]
-	//getImage := Containers.([]interface{})[0].(map[string]interface{})["image"].(string)
-	//fmt.Println(getImage)
-	//fmt.Println("imageReplace:", r.Image)
+
+	//exchange the image from body
 	deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
 
+	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
 		log.Println("[DpImageDate] NewDeploymentByte TO Json Change ERR: ", err)
 		return

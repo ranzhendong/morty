@@ -11,14 +11,12 @@ import (
 	"net/http"
 )
 
-///apis/extensions/v1beta1/namespaces/default/deployments/nginx-deployment
 func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyContentByte []byte, deploymentUrl string) {
 	var (
 		c                  datastructure.Config
 		t                  datastructure.Token
 		k8sHost, tokenFile string
 	)
-
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
 		log.Fatalf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)

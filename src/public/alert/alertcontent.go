@@ -4,15 +4,24 @@ import (
 	"datastructure"
 )
 
-var requestMux map[string]func(datastructure.Request) (content string, f [1]string)
+var (
+	requestMux map[string]func(datastructure.Request) (content string, f [1]string)
+	subject    = "        乐湃事件通知"
+)
 
 func Main(requestUrl string, a datastructure.Request) (content string, f [1]string) {
 	requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
+
+	// content route
 	route()
+
+	// get the func
 	if h, ok := requestMux[requestUrl]; ok {
-		h(a)
 		return h(a)
 	}
+
+	//if func doesn't exist
+	content = "DingAlertContent " + requestUrl + " Do Not defined"
 	return
 }
 
@@ -21,11 +30,7 @@ func route() {
 }
 
 func dpUpdate(a datastructure.Request) (content string, f [1]string) {
-	var (
-		subject string
-	)
-	// 数据定义
-	subject = "        乐湃事件通知"
+	// date into struck
 	if a.SendFormat == "text" {
 		content = subject +
 			"\n" + "{ " + a.JavaProject + " } 滚动更新完成" +
@@ -44,6 +49,7 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 			"\n@" + a.Info.PhoneNumber
 	}
 
+	// @somebody
 	f[0] = a.Info.PhoneNumber
 	return
 }

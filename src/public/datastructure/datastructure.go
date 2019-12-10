@@ -57,15 +57,15 @@ type DingText struct {
 	At      At     `json:"at"`
 }
 
+type Text struct {
+	Content string `json:"content"`
+}
+
 //markdown文本提醒
 type DingMarkDown struct {
 	Msgtype  string   `json:"msgtype"`
 	MarkDown MarkDown `json:"markdown"`
 	At       At       `json:"at"`
-}
-
-type Text struct {
-	Content string `json:"content"`
 }
 
 type MarkDown struct {
