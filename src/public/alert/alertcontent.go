@@ -5,13 +5,12 @@ import (
 )
 
 var (
-	requestMux map[string]func(datastructure.Request) (content string, f [1]string)
+	requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
 	subject    = "        乐湃事件通知"
 )
 
 func Main(requestUrl string, a datastructure.Request) (content string, f [1]string) {
-	requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
-
+	//requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
 	// content route
 	route()
 

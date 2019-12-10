@@ -1,55 +1,62 @@
 package datastructure
 
 //定义数据类型，如果没有获取，默认为空
+
+//RequestBody数据结构
 type Request struct {
-	Deployment    string `json:"deployment"`
-	NameSpace     string `json:"namespace"`
-	DeploymentApi string `json:"deploymentapi"`
-	JavaProject   string `json:"javaProject"`
-	Version       string `json:"version"`
-	Image         string `json:"image"`
-	SendFormat    string `json:"sendFormat"`
-	Info          Info   `json:"info"`
+	Deployment      string        `json:"deployment"`
+	NameSpace       string        `json:"namespace"`
+	DeploymentApi   string        `json:"deploymentApi"`
+	JavaProject     string        `json:"javaProject"`
+	Version         string        `json:"version"`
+	Image           string        `json:"image"`
+	MinReadySeconds int           `json:"minReadySeconds"`
+	Replicas        int           `json:"replicas"`
+	Paused          string        `json:"paused"`
+	SendFormat      string        `json:"sendFormat"`
+	RollingUpdate   RollingUpdate `json:"rollingUpdate"`
+	Info            Info          `json:"info"`
 }
 
-//详细类型
 type Info struct {
 	RequestMan    string `json:"requestMan"`
 	UpdateSummary string `json:"updateSummary"`
 	PhoneNumber   string `json:"phoneNumber"`
 }
 
-//配置文件
+type RollingUpdate struct {
+	MaxUnavailable string `json:"maxUnavailable"`
+	MaxSurge       string `json:"maxSurge"`
+}
+
+//配置文件数据结构
 type Config struct {
 	Userlist  []Userlist `yaml:"userlist"`
 	Kubenetes Kubenetes  `yaml:"kubenetes"`
 	DingDing  DingDing   `yaml:"dingding"`
 }
 
-//用户列表
 type Userlist struct {
 	Name        string `yaml:"name"`
 	ChineseName string `yaml:"chinesename"`
 	PhoneNumber string `yaml:"phonenumber"`
 }
 
-//k8s配置
 type Kubenetes struct {
 	Host          string `yaml:"host"`
 	TokenFile     string `yaml:"tokenfile"`
 	DeploymentApi string `yaml:"deploymentapi"`
 }
 
-// token file
 type Token struct {
 	Token string `json:"token"`
 }
 
-//钉钉配置
 type DingDing struct {
 	Robotsurl string `yaml:"robotsurl"`
 }
 
+//钉钉消息提示数据结构
 //text文本提醒
 type DingText struct {
 	Msgtype string `json:"msgtype"`
