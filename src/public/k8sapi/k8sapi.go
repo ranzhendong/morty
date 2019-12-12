@@ -19,11 +19,13 @@ func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyC
 	)
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)
+		log.Printf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)
+		err = fmt.Errorf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	if err = token.Unmarshal(&t); err != nil {
-		log.Fatalf("[APIServerGet] Unable To Decode Into Token Struct, %v", err)
+		log.Printf("[APIServerGet] Unable To Decode Into Token Struct, %v", err)
+		err = fmt.Errorf("[APIServerGet] Unable To Decode Into Token Struct, %v", err)
 		return
 	}
 
@@ -87,11 +89,13 @@ func APIServerPut(newDeploymentByte []byte, deploymentUrl string, token *viper.V
 	)
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("[APIServerPut] Unable To Decode Into Config Struct, %v", err)
+		log.Printf("[APIServerPut] Unable To Decode Into Config Struct, %v", err)
+		err = fmt.Errorf("[APIServerPut] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	if err = token.Unmarshal(&t); err != nil {
-		log.Fatalf("[APIServerPut] Unable To Decode Into Token Struct, %v", err)
+		log.Printf("[APIServerPut] Unable To Decode Into Token Struct, %v", err)
+		err = fmt.Errorf("[APIServerPut] Unable To Decode Into Token Struct, %v", err)
 		return
 	}
 

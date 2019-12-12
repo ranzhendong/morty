@@ -12,11 +12,13 @@ func User(a datastructure.Request) (err error) {
 		c datastructure.Config
 	)
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("[User] Unable To Decode Into Config Struct, %v", err)
+		log.Printf("[User] Unable To Decode Into Config Struct, %v", err)
+		err = fmt.Errorf("[User] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 	for _, c := range c.Userlist {
-		if c.Name == a.Info.RequestMan && c.PhoneNumber == a.Info.PhoneNumber {
+		// a.Info.PhoneNumber's type is json.Number, so i can decide the data type
+		if c.Name == a.Info.RequestMan && c.PhoneNumber == a.Info.PhoneNumber.String() {
 			log.Printf("[User] {%v} Is Executing", c.Name)
 			return
 		}

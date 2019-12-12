@@ -1,6 +1,7 @@
 package configanalysis
 
 import (
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"log"
@@ -55,10 +56,12 @@ func NewLoadConfig() (err error, token *viper.Viper) {
 	//Find and read the config and token file
 	if err = viper.ReadInConfig(); err != nil {
 		log.Printf("[LoadConfig] Fatal Error Config File: %s \n", err)
+		err = fmt.Errorf("[LoadConfig] Fatal Error Config File: %s \n", err)
 		return
 	}
 	if err = token.ReadInConfig(); err != nil {
 		log.Printf("[LoadConfig] Fatal Error Token File: %s \n", err)
+		err = fmt.Errorf("[LoadConfig] Fatal Error Token File: %s \n", err)
 		return
 	}
 

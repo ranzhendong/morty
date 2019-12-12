@@ -68,9 +68,9 @@ func dpUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func grayDpUpdate(w http.ResponseWriter, r *http.Request) {
-	//if err := dpimageupdate.GrayDpUpdate(r, token); err != nil {
-	//	_, _ = io.WriteString(w, fmt.Sprint(err))
-	//	return
-	//}
+	if err := dpimageupdate.GrayDpUpdate(r, token); err != nil {
+		_, _ = io.WriteString(w, fmt.Sprint(err))
+		return
+	}
 	_, _ = io.WriteString(w, "[Main.GrayDpUpdate] Deployment Image Update Complete!")
 }

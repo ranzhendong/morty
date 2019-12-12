@@ -24,7 +24,8 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 	)
 	// Unmarshal the config and token
 	if err = viper.Unmarshal(&c); err != nil {
-		log.Fatalf("[APIServerGet] Unable To Decode Into Config Struct, %v", err)
+		log.Printf("[DingAlert] Unable To Decode Into Config Struct, %v", err)
+		err = fmt.Errorf("[DingAlert] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
 
@@ -47,6 +48,7 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 		}
 		if b, err = json.Marshal(d); err == nil {
 			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
+			err = fmt.Errorf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	} else {
 		var d = datastructure.DingMarkDown{
@@ -62,6 +64,7 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 		}
 		if b, err = json.Marshal(d); err == nil {
 			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
+			err = fmt.Errorf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	}
 

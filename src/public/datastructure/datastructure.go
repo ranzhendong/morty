@@ -1,5 +1,7 @@
 package datastructure
 
+import "encoding/json"
+
 //定义数据类型，如果没有获取，默认为空
 
 //RequestBody数据结构
@@ -10,8 +12,8 @@ type Request struct {
 	JavaProject     string        `json:"javaProject"`
 	Version         string        `json:"version"`
 	Image           string        `json:"image"`
-	MinReadySeconds int           `json:"minReadySeconds"`
-	Replicas        int           `json:"replicas"`
+	MinReadySeconds json.Number   `json:"minReadySeconds"`
+	Replicas        json.Number   `json:"replicas"`
 	Paused          string        `json:"paused"`
 	SendFormat      string        `json:"sendFormat"`
 	RollingUpdate   RollingUpdate `json:"rollingUpdate"`
@@ -19,9 +21,9 @@ type Request struct {
 }
 
 type Info struct {
-	RequestMan    string `json:"requestMan"`
-	UpdateSummary string `json:"updateSummary"`
-	PhoneNumber   string `json:"phoneNumber"`
+	RequestMan    string      `json:"requestMan"`
+	UpdateSummary string      `json:"updateSummary"`
+	PhoneNumber   json.Number `json:"phoneNumber"`
 }
 
 type RollingUpdate struct {

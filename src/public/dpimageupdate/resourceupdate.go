@@ -7,13 +7,14 @@ import (
 	"log"
 )
 
-func eliminateStatus(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
+func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byte) {
 	var (
 		deploymentMap map[string]interface{}
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
 		log.Printf("[EliminateStatus] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[EliminateStatus] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
 
@@ -22,7 +23,8 @@ func eliminateStatus(a datastructure.Request, bodyContentByte []byte) (err error
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
-		log.Println("[EliminateStatus] DeploymentByte TO Json Change ERR: ", err)
+		log.Printf("[EliminateStatus] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[EliminateStatus] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return
@@ -37,6 +39,7 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
 		log.Printf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
 
@@ -44,12 +47,12 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
 
 	//replace replicas from deployment
-	if a.Replicas != 0 {
+	if a.Replicas.String() != string(0) {
 		deploymentMap["spec"].(map[string]interface{})["replicas"] = a.Replicas
 	}
 
 	//replace minReadySeconds from deployment
-	if a.MinReadySeconds != 0 {
+	if a.MinReadySeconds.String() != string(0) {
 		deploymentMap["spec"].(map[string]interface{})["minReadySeconds"] = a.MinReadySeconds
 	}
 
@@ -75,7 +78,45 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
-		log.Println("[ReplaceImage] DeploymentByte TO Json Change ERR: ", err)
+		log.Printf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
+		return
+	}
+	return
+}
+
+func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newDeploymentByte []byte) {
+	var (
+		deploymentMap map[string]interface{}
+		strategy      map[string]interface{}
+		rollingUpdate = make(map[string]interface{})
+	)
+	//Unmarshal the body
+	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
+		log.Printf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
+		return
+	}
+
+	//init the strategy
+	strategy = make(map[string]interface{})
+	rollingUpdate["maxUnavailable"] = "50%"
+	rollingUpdate["maxSurge"] = "50%"
+	strategy["rollingUpdate"] = rollingUpdate
+	strategy["type"] = "RollingUpdate"
+	deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
+
+	//if pauesed exist
+	if paused {
+		deploymentMap["spec"].(map[string]interface{})["paused"] = true
+	} else {
+		deploymentMap["spec"].(map[string]interface{})["paused"] = false
+	}
+
+	//Marshal the new body
+	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
+		log.Printf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return

@@ -37,7 +37,7 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
 			"\n" + "执行人：" + a.Info.RequestMan +
-			"\n@" + a.Info.PhoneNumber
+			"\n@" + a.Info.PhoneNumber.String()
 	} else {
 		content = "## " + subject +
 			"\n" + "### **" + a.JavaProject + "**项目滚动更新完成 \n" +
@@ -45,10 +45,10 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
 			"\n" + "4. 执行人：" + a.Info.RequestMan +
-			"\n@" + a.Info.PhoneNumber
+			"\n@" + a.Info.PhoneNumber.String()
 	}
 
 	// @somebody
-	f[0] = a.Info.PhoneNumber
+	f[0] = a.Info.PhoneNumber.String()
 	return
 }

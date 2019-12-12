@@ -18,4 +18,5 @@ require (
 	configanalysis v1.11.3
 	dpimageupdate v1.11.3
 	github.com/spf13/viper v1.5.0
+	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 // indirect
 )
