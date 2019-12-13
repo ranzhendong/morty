@@ -64,7 +64,7 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	}
 
 	//replace rollingUpdate from deployment
-	if a.RollingUpdate.MaxSurge != "" {
+	if a.RollingUpdate.MaxSurge != "" && a.Name == "InstantDeployment" {
 		//must be equal
 		if a.RollingUpdate.MaxSurge != a.RollingUpdate.MaxUnavailable {
 			log.Printf("[ReplaceImage] MaxSurge:%v ≠ MaxUnavailable:%v \n"+
@@ -78,6 +78,13 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 		//init the strategy
 		rollingUpdate["maxUnavailable"] = a.RollingUpdate.MaxUnavailable
 		rollingUpdate["maxSurge"] = a.RollingUpdate.MaxSurge
+		strategy["rollingUpdate"] = rollingUpdate
+		strategy["type"] = "RollingUpdate"
+		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
+	} else if a.Name == "GrayDeployment" {
+		//init the strategy
+		rollingUpdate["maxUnavailable"] = "50%"
+		rollingUpdate["maxSurge"] = "50%"
 		strategy["rollingUpdate"] = rollingUpdate
 		strategy["type"] = "RollingUpdate"
 		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
@@ -95,8 +102,6 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newDeploymentByte []byte) {
 	var (
 		deploymentMap map[string]interface{}
-		strategy      map[string]interface{}
-		rollingUpdate = make(map[string]interface{})
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
@@ -104,14 +109,6 @@ func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newD
 		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
-
-	//init the strategy
-	strategy = make(map[string]interface{})
-	rollingUpdate["maxUnavailable"] = "50%"
-	rollingUpdate["maxSurge"] = "50%"
-	strategy["rollingUpdate"] = rollingUpdate
-	strategy["type"] = "RollingUpdate"
-	deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
 
 	//if pauesed exist
 	if paused {

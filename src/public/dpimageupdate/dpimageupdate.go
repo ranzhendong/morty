@@ -18,6 +18,13 @@ import (
 	"user"
 )
 
+type MyError struct {
+	MyError error
+}
+
+var errors = make(chan int)
+var MyErrorChan = make(chan MyError)
+
 func initCheck(rBody io.Reader) (err error, a datastructure.Request) {
 	var (
 		body []byte
@@ -129,7 +136,6 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		f                      [1]string
 		bodyContentByte        []byte
 		s                      int
-		minReadySeconds        int64
 		deploymentUrl, content string
 	)
 	//Check if body is right
@@ -191,26 +197,11 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	minReadySeconds, _ = a.MinReadySeconds.Int64()
-	for {
-		time.Sleep(time.Duration(minReadySeconds-5) * time.Second)
-		break
-	}
-	log.Printf("[GrayDpUpdate] Need TO %v Gray Update", s+int(minReadySeconds))
+	//gray deployment controller Goroutine
+	go pauseGoroutine(a, bodyContentByte, deploymentUrl, s, token)
 
-	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, true); err != nil {
-		return
-	}
-	log.Println("[GrayDpUpdate] ReplaceResourcePaused", string(bodyContentByte))
-	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
-		return
-	}
-
-	for {
-		time.Sleep(time.Duration(s) * time.Second)
-		go secondLoop(bodyContentByte, deploymentUrl, token)
-		break
-	}
+	//  handle the err of pauseGoroutine,if err exist
+	go errHandle()
 
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a)
@@ -220,55 +211,80 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	return
 }
 
-func secondLoop(bodyContentByte []byte, deploymentUrl string, token *viper.Viper) (err error) {
-	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, false); err != nil {
+func grayLoop(bodyContentByte []byte, deploymentUrl string, mybool bool, token *viper.Viper) (err error) {
+	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, mybool); err != nil {
 		return
 	}
-	log.Println("[GrayDpUpdate] SecondLoopReplaceResourcePaused", string(bodyContentByte))
+	log.Println("[GrayLoop] SecondLoopReplaceResourcePaused", string(bodyContentByte))
 	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
 		return
 	}
 	return
 }
 
-type Resp struct {
-	data  int
-	error error
+func errHandle() {
+	for {
+		select {
+		case <-errors:
+			err := <-MyErrorChan
+			log.Println(err.MyError)
+		}
+	}
 }
 
-func handleMsg() {
-	resp := make(chan Resp)
-	stop := make(chan struct{})
+func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, deploymentUrl string, s int, token *viper.Viper) {
+	var (
+		minReadySeconds int64
+		err             error
+		interval        = make(chan int)
+		first           = make(chan int)
+		second          = make(chan int)
+	)
+
 	go func() {
-		t := time.Tick(time.Second)
-		index := 0
+		minReadySeconds, _ = a.MinReadySeconds.Int64()
+		if minReadySeconds > 10 {
+			minReadySeconds = 10
+		}
+		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", s+int(minReadySeconds)*2)
+		for {
+			time.Sleep(time.Duration(minReadySeconds) * time.Second)
+			break
+		}
+		first <- 1
+	}()
+
+	go func() {
 		for {
 			select {
-			case <-t:
-				resp <- Resp{
-					data: index,
+			case <-interval:
+				log.Println("[Paused] Interval")
+				for {
+					time.Sleep(time.Duration(s) * time.Second)
+					break
 				}
-				index++
-			case <-stop:
-				resp <- Resp{
-					error: fmt.Errorf("time tick stop error"),
-				}
+				second <- 1
 			}
 		}
 	}()
 
 	for {
 		select {
-		case val := <-resp:
-			if val.error != nil {
-				log.Fatal(val.error)
+		case <-first:
+			log.Println("[Paused] To Be Paued")
+			if err = grayLoop(bodyContentByte, deploymentUrl, true, token); err != nil {
+				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
+				MyErrorChan <- MyError{err}
+				errors <- 1
 			}
-			if val.data == 5 {
-				stop <- struct{}{}
-
+			interval <- 1
+		case <-second:
+			log.Println("[Paused] No Be Paued")
+			if err = grayLoop(bodyContentByte, deploymentUrl, false, token); err != nil {
+				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
+				MyErrorChan <- MyError{err}
+				errors <- 1
 			}
-			fmt.Println("index", val.data)
-
 		}
 	}
 }

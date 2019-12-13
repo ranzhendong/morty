@@ -6,6 +6,7 @@ import "encoding/json"
 
 //RequestBody数据结构
 type Request struct {
+	Name            string        `json:"name"`
 	Deployment      string        `json:"deployment"`
 	NameSpace       string        `json:"namespace"`
 	DeploymentApi   string        `json:"deploymentApi"`
