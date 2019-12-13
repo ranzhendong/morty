@@ -129,6 +129,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		f                      [1]string
 		bodyContentByte        []byte
 		s                      int
+		minReadySeconds        int64
 		deploymentUrl, content string
 	)
 	//Check if body is right
@@ -190,13 +191,13 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	k, _ := a.MinReadySeconds.Int64()
+	minReadySeconds, _ = a.MinReadySeconds.Int64()
 	for {
-		time.Sleep(time.Duration(k-2) * time.Second)
+		time.Sleep(time.Duration(minReadySeconds-5) * time.Second)
 		break
 	}
+	log.Printf("[GrayDpUpdate] Need TO %v Gray Update", s+int(minReadySeconds))
 
-	log.Printf("[GrayDpUpdate] Need TO %v Gray Update", s+int(k))
 	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, true); err != nil {
 		return
 	}

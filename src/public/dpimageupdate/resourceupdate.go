@@ -9,7 +9,7 @@ import (
 
 func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byte) {
 	var (
-		deploymentMap map[string]interface{}
+		deploymentMap, metadataMap map[string]interface{}
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
@@ -18,14 +18,15 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 		return
 	}
 
-	//delete status from deployment
+	//delete status and metadata from deployment
+	//second apiserver put will filed if not delete key resourceVersion of metadataMap
 	delete(deploymentMap, "status")
-	a := deploymentMap["metadata"].(map[string]interface{})
-	delete(a, "resourceVersion")
-	delete(a, "annotations")
-	delete(a, "creationTimestamp")
-	delete(a, "generation")
-	delete(a, "uid")
+	metadataMap = deploymentMap["metadata"].(map[string]interface{})
+	delete(metadataMap, "resourceVersion")
+	delete(metadataMap, "annotations")
+	delete(metadataMap, "creationTimestamp")
+	delete(metadataMap, "generation")
+	delete(metadataMap, "uid")
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
