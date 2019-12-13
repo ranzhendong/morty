@@ -48,7 +48,6 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 		}
 		if b, err = json.Marshal(d); err == nil {
 			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
-			err = fmt.Errorf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	} else {
 		var d = datastructure.DingMarkDown{
@@ -64,7 +63,6 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 		}
 		if b, err = json.Marshal(d); err == nil {
 			log.Printf("[DingAlert] Send TO DingTalk %v ", string(b))
-			err = fmt.Errorf("[DingAlert] Send TO DingTalk %v ", string(b))
 		}
 	}
 

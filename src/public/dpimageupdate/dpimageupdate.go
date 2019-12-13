@@ -190,19 +190,20 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
+	k, _ := a.MinReadySeconds.Int64()
 	for {
-		time.Sleep(time.Duration(3) * time.Second)
+		time.Sleep(time.Duration(k-2) * time.Second)
 		break
 	}
 
-	log.Println("my second", s)
+	log.Printf("[GrayDpUpdate] Need TO %v Gray Update", s+int(k))
 	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, true); err != nil {
 		return
 	}
+	log.Println("[GrayDpUpdate] ReplaceResourcePaused", string(bodyContentByte))
 	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
 		return
 	}
-	log.Println("replaceResourcePaused:", string(bodyContentByte))
 
 	for {
 		time.Sleep(time.Duration(s) * time.Second)
@@ -222,10 +223,10 @@ func secondLoop(bodyContentByte []byte, deploymentUrl string, token *viper.Viper
 	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, false); err != nil {
 		return
 	}
+	log.Println("[GrayDpUpdate] SecondLoopReplaceResourcePaused", string(bodyContentByte))
 	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
 		return
 	}
-	log.Println("secondLoopReplaceResourcePaused:", string(bodyContentByte))
 	return
 }
 

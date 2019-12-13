@@ -10,7 +10,6 @@ var (
 )
 
 func Main(requestUrl string, a datastructure.Request) (content string, f [1]string) {
-	//requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
 	// content route
 	route()
 
@@ -21,6 +20,7 @@ func Main(requestUrl string, a datastructure.Request) (content string, f [1]stri
 
 	//if func doesn't exist
 	content = "DingAlertContent " + requestUrl + " Do Not defined"
+	f[0] = a.Info.PhoneNumber.String()
 	return
 }
 

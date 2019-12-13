@@ -20,6 +20,12 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 
 	//delete status from deployment
 	delete(deploymentMap, "status")
+	a := deploymentMap["metadata"].(map[string]interface{})
+	delete(a, "resourceVersion")
+	delete(a, "annotations")
+	delete(a, "creationTimestamp")
+	delete(a, "generation")
+	delete(a, "uid")
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
