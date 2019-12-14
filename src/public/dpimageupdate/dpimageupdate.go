@@ -80,16 +80,16 @@ func ding(a datastructure.Request, content string, f [1]string) (err error) {
 	return
 }
 
-func anonymousReplace(a datastructure.Request, bodyContentByte []byte, f func(datastructure.Request, []byte) (err error)) (err error) {
-	return f(a, bodyContentByte)
+func anonymousReplace(a datastructure.Request, f func(datastructure.Request) (err error)) (err error) {
+	return f(a)
 }
 
 func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	var (
-		a                      datastructure.Request
-		f                      [1]string
-		bodyContentByte        []byte
-		deploymentUrl, content string
+		a               datastructure.Request
+		f               [1]string
+		bodyContentByte []byte
+		content         string
 	)
 	//Check if body is right
 	if err, a = initCheck(r.Body); err != nil {
@@ -97,13 +97,13 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	// get deployment info from apiserver
-	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a, token); err != nil {
+	if err, bodyContentByte = k8sapi.APIServerGet(a, token); err != nil {
 		return
 	}
 
 	//replace the resource
 	//the anonymous func is equivalent to func replace
-	if err = anonymousReplace(a, bodyContentByte, func(a datastructure.Request, bytes []byte) (err error) {
+	if err = anonymousReplace(a, func(a datastructure.Request) (err error) {
 		// eliminate the Status from deployment
 		if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 			return
@@ -118,7 +118,7 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	// put the new deployment info to apiserver
-	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
+	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 		return
 	}
 
@@ -132,11 +132,11 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 
 func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	var (
-		a                      datastructure.Request
-		f                      [1]string
-		bodyContentByte        []byte
-		s                      int
-		deploymentUrl, content string
+		a               datastructure.Request
+		f               [1]string
+		bodyContentByte []byte
+		s               int
+		content         string
 	)
 	//Check if body is right
 	if err, a = initCheck(r.Body); err != nil {
@@ -144,7 +144,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	// get deployment info from apiserver
-	if err, bodyContentByte, deploymentUrl = k8sapi.APIServerGet(a, token); err != nil {
+	if err, bodyContentByte = k8sapi.APIServerGet(a, token); err != nil {
 		return
 	}
 
@@ -178,7 +178,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 
 	//replace the resource
 	//the anonymous func is equivalent to func replace
-	if err = anonymousReplace(a, bodyContentByte, func(a datastructure.Request, bytes []byte) (err error) {
+	if err = anonymousReplace(a, func(a datastructure.Request) (err error) {
 		// eliminate the Status from deployment
 		if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 			return
@@ -193,12 +193,12 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	// put the new deployment info to apiserver
-	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
+	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 		return
 	}
 
 	//gray deployment controller Goroutine
-	go pauseGoroutine(a, bodyContentByte, deploymentUrl, s, token)
+	go pauseGoroutine(a, bodyContentByte, s, token)
 
 	//  handle the err of pauseGoroutine,if err exist
 	go errHandle()
@@ -211,12 +211,11 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	return
 }
 
-func grayLoop(bodyContentByte []byte, deploymentUrl string, mybool bool, token *viper.Viper) (err error) {
-	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, mybool); err != nil {
+func grayLoop(a datastructure.Request, bodyContentByte []byte, myBool bool, token *viper.Viper) (err error) {
+	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, myBool); err != nil {
 		return
 	}
-	log.Println("[GrayLoop] SecondLoopReplaceResourcePaused", string(bodyContentByte))
-	if err, _ = k8sapi.APIServerPut(bodyContentByte, deploymentUrl, token); err != nil {
+	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 		return
 	}
 	return
@@ -232,7 +231,7 @@ func errHandle() {
 	}
 }
 
-func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, deploymentUrl string, s int, token *viper.Viper) {
+func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, token *viper.Viper) {
 	var (
 		minReadySeconds int64
 		err             error
@@ -248,7 +247,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, deploymentU
 		}
 		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", s+int(minReadySeconds)*2)
 		for {
-			time.Sleep(time.Duration(minReadySeconds) * time.Second)
+			time.Sleep(time.Duration(3) * time.Second)
 			break
 		}
 		first <- 1
@@ -272,7 +271,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, deploymentU
 		select {
 		case <-first:
 			log.Println("[Paused] To Be Paued")
-			if err = grayLoop(bodyContentByte, deploymentUrl, true, token); err != nil {
+			if err = grayLoop(a, bodyContentByte, true, token); err != nil {
 				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -280,7 +279,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, deploymentU
 			interval <- 1
 		case <-second:
 			log.Println("[Paused] No Be Paued")
-			if err = grayLoop(bodyContentByte, deploymentUrl, false, token); err != nil {
+			if err = grayLoop(a, bodyContentByte, false, token); err != nil {
 				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
 				MyErrorChan <- MyError{err}
 				errors <- 1

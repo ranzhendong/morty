@@ -68,7 +68,7 @@ func dpUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func grayDpUpdate(w http.ResponseWriter, r *http.Request) {
-	//dpimageupdate.HandleMsg()
+	//dpimageupd	ate.HandleMsg()
 	if err := dpimageupdate.GrayDpUpdate(r, token); err != nil {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return

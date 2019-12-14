@@ -27,6 +27,7 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 	delete(metadataMap, "creationTimestamp")
 	delete(metadataMap, "generation")
 	delete(metadataMap, "uid")
+	delete(metadataMap, "annotations")
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
@@ -83,8 +84,8 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
 	} else if a.Name == "GrayDeployment" {
 		//init the strategy
-		rollingUpdate["maxUnavailable"] = "50%"
-		rollingUpdate["maxSurge"] = "50%"
+		rollingUpdate["maxUnavailable"] = "66%"
+		rollingUpdate["maxSurge"] = "33%"
 		strategy["rollingUpdate"] = rollingUpdate
 		strategy["type"] = "RollingUpdate"
 		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
@@ -101,7 +102,8 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 
 func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newDeploymentByte []byte) {
 	var (
-		deploymentMap map[string]interface{}
+		deploymentMap           map[string]interface{}
+		rollingUpdate, strategy map[string]interface{}
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
@@ -109,6 +111,15 @@ func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newD
 		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
+
+	//init the strategy
+	rollingUpdate = make(map[string]interface{})
+	strategy = make(map[string]interface{})
+	rollingUpdate["maxUnavailable"] = "66%"
+	rollingUpdate["maxSurge"] = "33%"
+	strategy["rollingUpdate"] = rollingUpdate
+	strategy["type"] = "RollingUpdate"
+	deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
 
 	//if pauesed exist
 	if paused {
