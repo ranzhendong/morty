@@ -39,7 +39,7 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 	return
 }
 
-func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
+func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte, newA datastructure.Request) {
 	var (
 		deploymentMap map[string]interface{}
 		strategy      = make(map[string]interface{})
@@ -76,6 +76,9 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	//replace replicas from deployment
 	if a.Replicas.String() != string(0) {
 		deploymentMap["spec"].(map[string]interface{})["replicas"] = a.Replicas
+	} else {
+		a.Replicas = json.Number(deploymentMap["spec"].(map[string]interface{})["replicas"].(string))
+		newA = a
 	}
 
 	//replace minReadySeconds from deployment
@@ -145,6 +148,16 @@ func ReplaceResourceName(a datastructure.Request, bodyContentByte []byte) (err e
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
 		log.Printf("[ReplaceResourceName] DeploymentByte TO Json Change ERR: %v", err)
 		err = fmt.Errorf("[ReplaceResourceName] DeploymentByte TO Json Change ERR: %v", err)
+		return
+	}
+	return
+}
+
+func ReplaceResourceReplicas(spec datastructure.MySpec) (err error, newDeploymentByte []byte) {
+	//Marshal the new body
+	if newDeploymentByte, err = json.Marshal(spec); err != nil {
+		log.Printf("[ReplaceResourceReplicas] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResourceReplicas] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return

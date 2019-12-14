@@ -6,7 +6,7 @@ userlist:
   - name: haiquan
     chinesename: 海权
     phonenumber: 17600376226
-kubenetes:
+kubernetes:
   host: https://172.16.0.60:6443
   tokenfile:
   deploymentapi: /apis/extensions/v1beta1

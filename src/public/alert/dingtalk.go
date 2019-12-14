@@ -70,7 +70,7 @@ func Ding(content string, f [1]string, sendFormat string) (err error) {
 	body.ReadFrom(bytes.NewBuffer([]byte(b)))
 
 	client := &http.Client{Transport: tr}
-	requestGet, _ := http.NewRequest("POST", c.DingDing.Robotsurl, body)
+	requestGet, _ := http.NewRequest("POST", c.DingDing.RobotsUrl, body)
 	requestGet.Header.Add("Content-Type", ContentType)
 	resp, err := client.Do(requestGet)
 	if err != nil {

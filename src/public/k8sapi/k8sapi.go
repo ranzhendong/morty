@@ -34,18 +34,18 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 	}
 
 	//assignment k8sHost and tokenFile
-	if c.Kubenetes.Host == "" {
-		log.Printf("[APIServer%v] Config  Kubenetes.Host Is %v ", method, c.Kubenetes.Host)
-		err = fmt.Errorf("[APIServer%v] Config  Kubenetes.Host Is %v ", method, c.Kubenetes.Host)
+	if c.Kubernetes.Host == "" {
+		log.Printf("[APIServer%v] Config  Kubenetes.Host Is %v ", method, c.Kubernetes.Host)
+		err = fmt.Errorf("[APIServer%v] Config  Kubenetes.Host Is %v ", method, c.Kubernetes.Host)
 		return
 	}
-	if c.Kubenetes.TokenFile == "" {
+	if c.Kubernetes.TokenFile == "" {
 		tokenFile = t.Token
 	}
 
 	// if set DeploymentApi
 	if a.DeploymentApi == "" {
-		a.DeploymentApi = c.Kubenetes.DeploymentApi
+		a.DeploymentApi = c.Kubernetes.DeploymentApi
 	}
 
 	// 忽略证书校验
@@ -58,15 +58,14 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 	if method == "GET" {
 		//url
 		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
-		k8sHost = c.Kubenetes.Host
+		k8sHost = c.Kubernetes.Host
 		requestUrl := k8sHost + deploymentUrl
 		//request
 		myRequest, _ = http.NewRequest(method, requestUrl, nil)
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	} else if method == "PUT" {
-		//url
 		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
-		k8sHost = c.Kubenetes.Host
+		k8sHost = c.Kubernetes.Host
 		requestUrl := k8sHost + deploymentUrl
 		//request
 		body := new(bytes.Buffer)
@@ -77,22 +76,34 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 		myRequest.Header.Set("Content-Type", contentType)
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	} else if method == "POST" {
-		//url
 		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments"
-		k8sHost = c.Kubenetes.Host
+		k8sHost = c.Kubernetes.Host
 		requestUrl := k8sHost + deploymentUrl
 		//request
 		body := new(bytes.Buffer)
 		if _, err = body.ReadFrom(bytes.NewBuffer(bodyContentByte)); err != nil {
 			return
 		}
-		myRequest, _ = http.NewRequest("POST", requestUrl, body)
+		myRequest, _ = http.NewRequest(method, requestUrl, body)
+		myRequest.Header.Set("Content-Type", contentType)
+		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
+	} else if method == "PATCH" {
+		contentType = "application/strategic-merge-patch+json"
+		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + "temp-" + a.Deployment
+		k8sHost = c.Kubernetes.Host
+		requestUrl := k8sHost + deploymentUrl
+		//request
+		body := new(bytes.Buffer)
+		if _, err = body.ReadFrom(bytes.NewBuffer(bodyContentByte)); err != nil {
+			return
+		}
+		myRequest, _ = http.NewRequest(method, requestUrl, body)
 		myRequest.Header.Set("Content-Type", contentType)
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	} else if method == "DELETE" {
 		//url
 		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + "temp-" + a.Deployment
-		k8sHost = c.Kubenetes.Host
+		k8sHost = c.Kubernetes.Host
 		requestUrl := k8sHost + deploymentUrl
 		//request
 		myRequest, _ = http.NewRequest(method, requestUrl, nil)
@@ -113,14 +124,14 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 	bodyContentByte, err = ioutil.ReadAll(myResponse.Body)
 	returnBodyContentByte = bodyContentByte
 	if myResponse.StatusCode == 200 {
-		log.Printf("[APIServer%v] Successful Ok %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+		log.Printf("[APIServer%v] Successful Ok %v, Return The Deployment: %v", method, method, string(bodyContentByte))
 	} else if myResponse.StatusCode == 201 {
-		log.Printf("[APIServer%v] Successful Create %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+		log.Printf("[APIServer%v] Successful Create %v, Return The Deployment: %v", method, method, string(bodyContentByte))
 	} else if myResponse.StatusCode == 202 {
-		log.Printf("[APIServer%v] Successful Accepted %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+		log.Printf("[APIServer%v] Successful Accepted %v, Return The Deployment: %v", method, method, string(bodyContentByte))
 	} else {
-		log.Printf("[APIServer%v] The StatusCode Is %v Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
-		err = fmt.Errorf("[APIServer%v] The StatusCode Is %v Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
+		log.Printf("[APIServer%v] The StatusCode Is %v, Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
+		err = fmt.Errorf("[APIServer%v] The StatusCode Is %v, Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
 		return
 	}
 	//log.Printf("[APIServer%v] Return The Deployment: %v", method, string(bodyContentByte))

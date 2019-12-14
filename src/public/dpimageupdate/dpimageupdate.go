@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"k8sapi"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,8 +23,10 @@ type MyError struct {
 	MyError error
 }
 
-var errors = make(chan int)
-var MyErrorChan = make(chan MyError)
+var (
+	errors      = make(chan int)
+	MyErrorChan = make(chan MyError)
+)
 
 func initCheck(rBody io.Reader) (err error, a datastructure.Request) {
 	var (
@@ -55,22 +58,8 @@ func initCheck(rBody io.Reader) (err error, a datastructure.Request) {
 	return
 }
 
-//func replace(a datastructure.Request, bodyContentByte []byte) (err error, newBodyContentByte []byte) {
-//	// eliminate the Status from deployment
-//
-//	if err, newBodyContentByte = eliminateStatus(a, bodyContentByte); err != nil {
-//		return
-//	}
-//
-//	//replace resource from deployment, include image, replicas
-//	if err, newBodyContentByte = replaceResource(a, newBodyContentByte, pauesd, funcs); err != nil {
-//		return
-//	}
-//	return
-//}
-
 func ding(a datastructure.Request, content string, f [1]string) (err error) {
-	//dingding alert
+	//dingDing alert
 	if err = alert.Ding(content, f, a.SendFormat); err != nil {
 		log.Printf("[Ding] Dingding ERROR:[%s]", err)
 		err = fmt.Errorf("[Ding] Dingding ERROR:[%v] %v", err,
@@ -86,7 +75,7 @@ func anonymousReplace(a datastructure.Request, f func(datastructure.Request) (er
 
 func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	var (
-		a               datastructure.Request
+		a, newA         datastructure.Request
 		f               [1]string
 		bodyContentByte []byte
 		content         string
@@ -96,7 +85,7 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	// get deployment info from apiserver
+	// get deployment info from apiServer
 	if err, bodyContentByte = k8sapi.APIServerGet(a, token); err != nil {
 		return
 	}
@@ -109,15 +98,18 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 			return
 		}
 		//replace resource from deployment, include image, replicas
-		if err, bodyContentByte = replaceResource(a, bodyContentByte); err != nil {
+		if err, bodyContentByte, newA = replaceResource(a, bodyContentByte); err != nil {
 			return
+		}
+		if newA.Replicas != "" {
+			a = newA
 		}
 		return
 	}); err != nil {
 		return
 	}
 
-	// put the new deployment info to apiserver
+	// put the new deployment info to apiServer
 	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 		return
 	}
@@ -132,7 +124,7 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 
 func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	var (
-		a               datastructure.Request
+		a, newA         datastructure.Request
 		f               [1]string
 		bodyContentByte []byte
 		s               int
@@ -175,6 +167,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 			"So GrayDeployment Paused Default Is 1 Minute. \n"+
 			"Notice: GrayDeployment Are published Later More Than 1 Minute.", a.Paused)
 	}
+	a.PausedSecond = s
 
 	//replace the resource
 	//the anonymous func is equivalent to func replace
@@ -184,8 +177,11 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 			return
 		}
 		//replace resource from deployment, include image, replicas
-		if err, bodyContentByte = replaceResource(a, bodyContentByte); err != nil {
+		if err, bodyContentByte, newA = replaceResource(a, bodyContentByte); err != nil {
 			return
+		}
+		if newA.Replicas != "" {
+			a = newA
 		}
 		return
 	}); err != nil {
@@ -193,7 +189,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	//gray deployment controller Goroutine
-	go pauseGoroutine(a, bodyContentByte, s, token)
+	go pauseGoroutine(a, bodyContentByte, token)
 
 	//  handle the err of pauseGoroutine,if err exist
 	go errHandle()
@@ -216,15 +212,21 @@ func errHandle() {
 	}
 }
 
-func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, token *viper.Viper) {
+func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
 	var (
 		minReadySeconds int64
+		m, k            float64
 		err             error
 		interval        = make(chan int)
 		replace         = make(chan int)
+		replicas        = make(chan int)
 		deletes         = make(chan int)
-		deleteInterval  = make(chan int)
+		grayInterval    = make(chan int)
+		replicasRate    = make(chan int)
+		spec            datastructure.MySpec
 	)
+
+	k = 0.3
 
 	// create new deployment
 	go func() {
@@ -232,7 +234,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 		if minReadySeconds > 10 {
 			minReadySeconds = 10
 		}
-		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", s+int(minReadySeconds)*2)
+		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", a.PausedSecond+int(minReadySeconds)*2)
 		for {
 			time.Sleep(time.Duration(minReadySeconds) * time.Second)
 			break
@@ -249,28 +251,45 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 			case <-interval:
 				log.Println("[Paused] Interval")
 				for {
-					time.Sleep(time.Duration(s) * time.Second)
+					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
 					break
 				}
 				replace <- 1
-			case <-deleteInterval:
-				log.Println("[Paused] DeleteInterval")
-				if s/2 > 60 {
-					s = 60
+			case <-grayInterval:
+				log.Println("[Paused] grayInterval")
+				if a.PausedSecond/2 > 60 {
+					a.PausedSecond = 60
 				}
 				for {
-					time.Sleep(time.Duration(s) * time.Second)
+					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
 					break
 				}
-				deletes <- 1
+				replicasRate <- 1
 			}
+		}
+	}()
+
+	go func() {
+		select {
+		case <-replicasRate:
+			log.Println("[Paused] replicasRate")
+			for i := 1; i <= int(math.Ceil(float64(10/int(k*10)))); i++ {
+				k = k * float64(i)
+				replicas <- 1
+				a.PausedSecond = 20
+				for {
+					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
+					break
+				}
+			}
+			deletes <- 1
 		}
 	}()
 
 	for {
 		select {
 		case <-replace:
-			log.Println("[replace]")
+			log.Println("[Paused] replace")
 			if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -281,15 +300,31 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-			// put the new deployment info to apiserver
+			// put the new deployment info to apiServer
 			if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-			deleteInterval <- 1
+			grayInterval <- 1
 		case <-deletes:
-			log.Println("[deletes]")
+			log.Println("[Paused] deletes")
 			if err = k8sapi.APIServerDelete(a, token); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+			}
+		case <-replicas:
+			log.Println("[Paused] replicas")
+			f := func() (l float64) {
+				m, _ = a.Replicas.Float64()
+				return math.Ceil(m * (1 - k))
+			}
+			spec.Spec.Replicas = int(f())
+			if err, bodyContentByte = ReplaceResourceReplicas(spec); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+			}
+			fmt.Println("[Paused] replicas ", string(bodyContentByte))
+			if err = k8sapi.APIServerPatch(a, bodyContentByte, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}

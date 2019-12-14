@@ -16,7 +16,7 @@ func User(a datastructure.Request) (err error) {
 		err = fmt.Errorf("[User] Unable To Decode Into Config Struct, %v", err)
 		return
 	}
-	for _, c := range c.Userlist {
+	for _, c := range c.UserList {
 		// a.Info.PhoneNumber's type is json.Number, so i can decide the data type
 		if c.Name == a.Info.RequestMan && c.PhoneNumber == a.Info.PhoneNumber.String() {
 			log.Printf("[User] {%v} Is Executing", c.Name)
