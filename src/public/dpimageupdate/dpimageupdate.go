@@ -192,11 +192,6 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	// put the new deployment info to apiserver
-	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
-		return
-	}
-
 	//gray deployment controller Goroutine
 	go pauseGoroutine(a, bodyContentByte, s, token)
 
@@ -206,16 +201,6 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a)
 	if err = ding(a, content, f); err != nil {
-		return
-	}
-	return
-}
-
-func grayLoop(a datastructure.Request, bodyContentByte []byte, myBool bool, token *viper.Viper) (err error) {
-	if err, bodyContentByte = replaceResourcePaused(bodyContentByte, myBool); err != nil {
-		return
-	}
-	if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 		return
 	}
 	return
@@ -236,10 +221,12 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 		minReadySeconds int64
 		err             error
 		interval        = make(chan int)
-		first           = make(chan int)
-		second          = make(chan int)
+		replace         = make(chan int)
+		deletes         = make(chan int)
+		deleteInterval  = make(chan int)
 	)
 
+	// create new deployment
 	go func() {
 		minReadySeconds, _ = a.MinReadySeconds.Int64()
 		if minReadySeconds > 10 {
@@ -247,10 +234,13 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 		}
 		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", s+int(minReadySeconds)*2)
 		for {
-			time.Sleep(time.Duration(3) * time.Second)
+			time.Sleep(time.Duration(minReadySeconds) * time.Second)
 			break
 		}
-		first <- 1
+		if err = k8sapi.APIServerPost(a, bodyContentByte, token); err != nil {
+			return
+		}
+		interval <- 1
 	}()
 
 	go func() {
@@ -262,25 +252,44 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, s int, toke
 					time.Sleep(time.Duration(s) * time.Second)
 					break
 				}
-				second <- 1
+				replace <- 1
+			case <-deleteInterval:
+				log.Println("[Paused] DeleteInterval")
+				if s/2 > 60 {
+					s = 60
+				}
+				for {
+					time.Sleep(time.Duration(s) * time.Second)
+					break
+				}
+				deletes <- 1
 			}
 		}
 	}()
 
 	for {
 		select {
-		case <-first:
-			log.Println("[Paused] To Be Paued")
-			if err = grayLoop(a, bodyContentByte, true, token); err != nil {
-				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
+		case <-replace:
+			log.Println("[replace]")
+			if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-			interval <- 1
-		case <-second:
-			log.Println("[Paused] No Be Paued")
-			if err = grayLoop(a, bodyContentByte, false, token); err != nil {
-				err = fmt.Errorf("[Paued] First Pauese ERR %v", err)
+			//replace resource from deployment, include image, replicas
+			a.Name = "InstantDeployment"
+			if err, bodyContentByte = ReplaceResourceName(a, bodyContentByte); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+			}
+			// put the new deployment info to apiserver
+			if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+			}
+			deleteInterval <- 1
+		case <-deletes:
+			log.Println("[deletes]")
+			if err = k8sapi.APIServerDelete(a, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}

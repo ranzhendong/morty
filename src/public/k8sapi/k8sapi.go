@@ -48,11 +48,6 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 		a.DeploymentApi = c.Kubenetes.DeploymentApi
 	}
 
-	//url
-	deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
-	k8sHost = c.Kubenetes.Host
-	requestUrl := k8sHost + deploymentUrl
-
 	// 忽略证书校验
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -61,15 +56,46 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 
 	// GET
 	if method == "GET" {
+		//url
+		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
+		k8sHost = c.Kubenetes.Host
+		requestUrl := k8sHost + deploymentUrl
+		//request
 		myRequest, _ = http.NewRequest(method, requestUrl, nil)
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	} else if method == "PUT" {
+		//url
+		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
+		k8sHost = c.Kubenetes.Host
+		requestUrl := k8sHost + deploymentUrl
+		//request
 		body := new(bytes.Buffer)
 		if _, err = body.ReadFrom(bytes.NewBuffer(bodyContentByte)); err != nil {
 			return
 		}
 		myRequest, _ = http.NewRequest(method, requestUrl, body)
 		myRequest.Header.Set("Content-Type", contentType)
+		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
+	} else if method == "POST" {
+		//url
+		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments"
+		k8sHost = c.Kubenetes.Host
+		requestUrl := k8sHost + deploymentUrl
+		//request
+		body := new(bytes.Buffer)
+		if _, err = body.ReadFrom(bytes.NewBuffer(bodyContentByte)); err != nil {
+			return
+		}
+		myRequest, _ = http.NewRequest("POST", requestUrl, body)
+		myRequest.Header.Set("Content-Type", contentType)
+		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
+	} else if method == "DELETE" {
+		//url
+		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + "temp-" + a.Deployment
+		k8sHost = c.Kubenetes.Host
+		requestUrl := k8sHost + deploymentUrl
+		//request
+		myRequest, _ = http.NewRequest(method, requestUrl, nil)
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	}
 
@@ -86,16 +112,22 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 	// 读取请求体
 	bodyContentByte, err = ioutil.ReadAll(myResponse.Body)
 	returnBodyContentByte = bodyContentByte
-	if myResponse.StatusCode != 200 {
+	if myResponse.StatusCode == 200 {
+		log.Printf("[APIServer%v] Successful Ok %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+	} else if myResponse.StatusCode == 201 {
+		log.Printf("[APIServer%v] Successful Create %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+	} else if myResponse.StatusCode == 202 {
+		log.Printf("[APIServer%v] Successful Accepted %v,Return The Deployment: %v", method, method, string(bodyContentByte))
+	} else {
 		log.Printf("[APIServer%v] The StatusCode Is %v Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
 		err = fmt.Errorf("[APIServer%v] The StatusCode Is %v Bad Response: %v", method, myResponse.StatusCode, string(bodyContentByte))
 		return
 	}
-	log.Printf("[APIServer%v] Return The Deployment: %v", method, string(bodyContentByte))
+	//log.Printf("[APIServer%v] Return The Deployment: %v", method, string(bodyContentByte))
 	return
 }
 
-//GET Resource
+//GET Resource (gain)
 func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyContentByte []byte) {
 	// parameter bodyContentByte is nil
 	if err, bodyContentByte = apiServer(a, token, bodyContentByte, "GET"); err != nil {
@@ -104,9 +136,33 @@ func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyC
 	return
 }
 
-//PUT Resource
+//Patch Resource (replace one of them)
+func APIServerPatch(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
+	if err, _ = apiServer(a, token, DeploymentByte, "PATCH"); err != nil {
+		return
+	}
+	return
+}
+
+//PUT Resource (replace)
 func APIServerPut(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
 	if err, _ = apiServer(a, token, DeploymentByte, "PUT"); err != nil {
+		return
+	}
+	return
+}
+
+//POST Resource (create)
+func APIServerPost(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
+	if err, _ = apiServer(a, token, DeploymentByte, "POST"); err != nil {
+		return
+	}
+	return
+}
+
+//Delete Resource (delete)
+func APIServerDelete(a datastructure.Request, token *viper.Viper) (err error) {
+	if err, _ = apiServer(a, token, []byte(""), "DELETE"); err != nil {
 		return
 	}
 	return

@@ -28,6 +28,7 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 	delete(metadataMap, "generation")
 	delete(metadataMap, "uid")
 	delete(metadataMap, "annotations")
+	delete(metadataMap, "selfLink")
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
@@ -46,13 +47,31 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
-		log.Printf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
-		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
+		log.Printf("[ReplaceResource] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResource] Json TO DeploymentMap Json Change ERR: %v", err)
+		return
+	}
+
+	//must be equal
+	if a.RollingUpdate.MaxSurge != a.RollingUpdate.MaxUnavailable {
+		log.Printf("[ReplaceResource] MaxSurge:%v ≠ MaxUnavailable:%v \n"+
+			"MaxSurge and MaxUnavailable Must Be Equal ",
+			a.RollingUpdate.MaxSurge, a.RollingUpdate.MaxUnavailable)
+		err = fmt.Errorf("[ReplaceResource] MaxSurge:%v ≠ MaxUnavailable:%v \n"+
+			"MaxSurge and MaxUnavailable Must Be Equal ",
+			a.RollingUpdate.MaxSurge, a.RollingUpdate.MaxUnavailable)
 		return
 	}
 
 	//exchange the image from body
-	deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
+	deployImage := deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"]
+	if a.Image != deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"].(string) {
+		deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
+	} else {
+		log.Printf("Deployment Image %v == %v, ImageTag Can Not Be Same! ", deployImage.(string), a.Image)
+		err = fmt.Errorf("Deployment Image %v == %v, ImageTag Can Not Be Same! ", deployImage.(string), a.Image)
+		return
+	}
 
 	//replace replicas from deployment
 	if a.Replicas.String() != string(0) {
@@ -64,18 +83,19 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 		deploymentMap["spec"].(map[string]interface{})["minReadySeconds"] = a.MinReadySeconds
 	}
 
+	if a.Name == "InstantDeployment" {
+		deploymentMap["metadata"].(map[string]interface{})["name"] = a.Deployment
+	} else if a.Name == "GrayDeployment" {
+		deploymentMap["metadata"].(map[string]interface{})["name"] = "temp-" + a.Deployment
+	} else {
+		log.Printf("[ReplaceResource] Name %v Is Not Right", a.Name)
+		err = fmt.Errorf("[ReplaceResource] Name %v Is Not Right", a.Name)
+		return
+	}
+
 	//replace rollingUpdate from deployment
 	if a.RollingUpdate.MaxSurge != "" && a.Name == "InstantDeployment" {
-		//must be equal
-		if a.RollingUpdate.MaxSurge != a.RollingUpdate.MaxUnavailable {
-			log.Printf("[ReplaceImage] MaxSurge:%v ≠ MaxUnavailable:%v \n"+
-				"MaxSurge and MaxUnavailable Must Be Equal ",
-				a.RollingUpdate.MaxSurge, a.RollingUpdate.MaxUnavailable)
-			err = fmt.Errorf("[ReplaceImage] MaxSurge:%v ≠ MaxUnavailable:%v \n"+
-				"MaxSurge and MaxUnavailable Must Be Equal ",
-				a.RollingUpdate.MaxSurge, a.RollingUpdate.MaxUnavailable)
-			return
-		}
+
 		//init the strategy
 		rollingUpdate["maxUnavailable"] = a.RollingUpdate.MaxUnavailable
 		rollingUpdate["maxSurge"] = a.RollingUpdate.MaxSurge
@@ -93,45 +113,38 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
-		log.Printf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
-		err = fmt.Errorf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
+		log.Printf("[ReplaceResource] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResource] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return
 }
 
-func replaceResourcePaused(bodyContentByte []byte, paused bool) (err error, newDeploymentByte []byte) {
+func ReplaceResourceName(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
 	var (
-		deploymentMap           map[string]interface{}
-		rollingUpdate, strategy map[string]interface{}
+		deploymentMap map[string]interface{}
 	)
 	//Unmarshal the body
 	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
-		log.Printf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
-		err = fmt.Errorf("[ReplaceImage] Json TO DeploymentMap Json Change ERR: %v", err)
+		log.Printf("[ReplaceResourceName] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResourceName] Json TO DeploymentMap Json Change ERR: %v", err)
 		return
 	}
 
-	//init the strategy
-	rollingUpdate = make(map[string]interface{})
-	strategy = make(map[string]interface{})
-	rollingUpdate["maxUnavailable"] = "66%"
-	rollingUpdate["maxSurge"] = "33%"
-	strategy["rollingUpdate"] = rollingUpdate
-	strategy["type"] = "RollingUpdate"
-	deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
-
-	//if pauesed exist
-	if paused {
-		deploymentMap["spec"].(map[string]interface{})["paused"] = true
+	if a.Name == "InstantDeployment" {
+		deploymentMap["metadata"].(map[string]interface{})["name"] = a.Deployment
+	} else if a.Name == "GrayDeployment" {
+		deploymentMap["metadata"].(map[string]interface{})["name"] = "temp-" + a.Deployment
 	} else {
-		deploymentMap["spec"].(map[string]interface{})["paused"] = false
+		log.Printf("[ReplaceResourceName] Name %v Is Not Right", a.Name)
+		err = fmt.Errorf("[ReplaceResourceName] Name %v Is Not Right", a.Name)
+		return
 	}
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {
-		log.Printf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
-		err = fmt.Errorf("[ReplaceImage] DeploymentByte TO Json Change ERR: %v", err)
+		log.Printf("[ReplaceResourceName] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResourceName] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return
