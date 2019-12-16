@@ -96,23 +96,12 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 		return
 	}
 
-	//replace rollingUpdate from deployment
-	if a.RollingUpdate.MaxSurge != "" && a.Name == "InstantDeployment" {
-
-		//init the strategy
-		rollingUpdate["maxUnavailable"] = a.RollingUpdate.MaxUnavailable
-		rollingUpdate["maxSurge"] = a.RollingUpdate.MaxSurge
-		strategy["rollingUpdate"] = rollingUpdate
-		strategy["type"] = "RollingUpdate"
-		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
-	} else if a.Name == "GrayDeployment" {
-		//init the strategy
-		rollingUpdate["maxUnavailable"] = "66%"
-		rollingUpdate["maxSurge"] = "33%"
-		strategy["rollingUpdate"] = rollingUpdate
-		strategy["type"] = "RollingUpdate"
-		deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
-	}
+	////replace rollingUpdate from deployment
+	rollingUpdate["maxUnavailable"] = a.RollingUpdate.MaxUnavailable
+	rollingUpdate["maxSurge"] = a.RollingUpdate.MaxSurge
+	strategy["rollingUpdate"] = rollingUpdate
+	strategy["type"] = "RollingUpdate"
+	deploymentMap["spec"].(map[string]interface{})["strategy"] = strategy
 
 	//Marshal the new body
 	if newDeploymentByte, err = json.Marshal(deploymentMap); err != nil {

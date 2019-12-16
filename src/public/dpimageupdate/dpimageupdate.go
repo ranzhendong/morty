@@ -127,8 +127,9 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		a, newA         datastructure.Request
 		f               [1]string
 		bodyContentByte []byte
-		s               int
-		content         string
+		s, su, sd       int64
+		//s       int64
+		content string
 	)
 	//Check if body is right
 	if err, a = initCheck(r.Body); err != nil {
@@ -141,33 +142,33 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	//gray deployment timeline
-	if a.Paused == "" {
-		s = 60
-	} else if strings.Contains(a.Paused, "min") {
-		if s, err = strconv.Atoi(a.Paused[0 : len(a.Paused)-3]); err != nil {
-			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", a.Paused[0:len(a.Paused)-3], a.Paused)
-			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", a.Paused[0:len(a.Paused)-3], a.Paused)
-			return
-		}
-		s = s * 60
-	} else if strings.Contains(a.Paused, "s") {
-		if s, err = strconv.Atoi(a.Paused[0 : len(a.Paused)-1]); err != nil {
-			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", a.Paused[0:len(a.Paused)-1], a.Paused)
-			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", a.Paused[0:len(a.Paused)-1], a.Paused)
-			return
-		}
-	} else if php2go.IsNumeric(a.Paused) {
-		s, _ = strconv.Atoi(a.Paused)
-		log.Printf("[GrayDpUpdate] {%v} Has Not Unit, So Default Is Second", a.Paused)
-	} else {
-		log.Printf("[GrayDpUpdate] Paused: %v Is Null, "+
-			"So GrayDeployment Paused Default Is 1 Minute. \n"+
-			"Notice: GrayDeployment Are published Later More Than 1 Minute.", a.Paused)
-		err = fmt.Errorf("[GrayDpUpdate] Paused: %v Is Null, "+
-			"So GrayDeployment Paused Default Is 1 Minute. \n"+
-			"Notice: GrayDeployment Are published Later More Than 1 Minute.", a.Paused)
+	if err, s = secondTransform(a.Gray.DurationOfStay); err != nil {
+		return
 	}
-	a.PausedSecond = s
+	if err, su = secondTransform(a.Gray.TempStepWiseUp); err != nil {
+		return
+	}
+	if err, sd = secondTransform(a.Gray.TempStepWiseDown); err != nil {
+		return
+	}
+	fmt.Println("s, su, sd", s, su, sd)
+
+	//a.DurationOfStay = s
+	a.Gray.DurationOfStay = json.Number(strconv.FormatFloat(float64(s), 'f', -1, 64))
+	a.Gray.TempStepWiseUp = json.Number(strconv.FormatFloat(float64(su), 'f', -1, 64))
+	a.Gray.TempStepWiseDown = json.Number(strconv.FormatFloat(float64(sd), 'f', -1, 64))
+	fmt.Println("durationOfStay: ?", a.Gray.DurationOfStay)
+
+	// TieredRate if right
+	tieredRate := a.Gray.TieredRate
+	if strings.Contains(a.Gray.TieredRate.String(), "%") {
+		if s, err = strconv.ParseInt(tieredRate.String()[0:len(tieredRate.String())-1], 10, 64); err != nil {
+			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
+			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
+			return
+		}
+		a.Gray.TieredRate = json.Number(strconv.FormatFloat(float64(s)*0.01, 'f', -1, 64))
+	}
 
 	//replace the resource
 	//the anonymous func is equivalent to func replace
@@ -215,7 +216,8 @@ func errHandle() {
 func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
 	var (
 		minReadySeconds int64
-		m, k            float64
+		d               int
+		m, t            float64
 		err             error
 		interval        = make(chan int)
 		replace         = make(chan int)
@@ -226,7 +228,9 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		spec            datastructure.MySpec
 	)
 
-	k = 0.3
+	t, _ = a.Gray.TieredRate.Float64()
+	os, _ := a.Gray.DurationOfStay.Int64()
+	d = int(os)
 
 	// create new deployment
 	go func() {
@@ -234,7 +238,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		if minReadySeconds > 10 {
 			minReadySeconds = 10
 		}
-		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", a.PausedSecond+int(minReadySeconds)*2)
+		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", d+int(minReadySeconds)*2)
 		for {
 			time.Sleep(time.Duration(minReadySeconds) * time.Second)
 			break
@@ -251,17 +255,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			case <-interval:
 				log.Println("[Paused] Interval")
 				for {
-					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
+					time.Sleep(time.Duration(d) * time.Second)
 					break
 				}
 				replace <- 1
 			case <-grayInterval:
 				log.Println("[Paused] grayInterval")
-				if a.PausedSecond/2 > 60 {
-					a.PausedSecond = 60
-				}
 				for {
-					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
+					time.Sleep(time.Duration(d) * time.Second)
 					break
 				}
 				replicasRate <- 1
@@ -272,13 +273,15 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 	go func() {
 		select {
 		case <-replicasRate:
-			log.Println("[Paused] replicasRate")
-			for i := 1; i <= int(math.Ceil(float64(10/int(k*10)))); i++ {
-				k = k * float64(i)
+			log.Println("[Paused] replicasRate", t)
+			for i := 1; i <= int(math.Ceil(float64(10/int(t*10)))); i++ {
+				t = t * float64(i)
 				replicas <- 1
-				a.PausedSecond = 20
+				if int(d)/2 > 60 {
+					d = 60
+				}
 				for {
-					time.Sleep(time.Duration(a.PausedSecond) * time.Second)
+					time.Sleep(time.Duration(d) * time.Second)
 					break
 				}
 			}
@@ -316,18 +319,52 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			log.Println("[Paused] replicas")
 			f := func() (l float64) {
 				m, _ = a.Replicas.Float64()
-				return math.Ceil(m * (1 - k))
+				return math.Ceil(m * (1 - t))
 			}
 			spec.Spec.Replicas = int(f())
 			if err, bodyContentByte = ReplaceResourceReplicas(spec); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-			fmt.Println("[Paused] replicas ", string(bodyContentByte))
+			//fmt.Println("[Paused] replicas ", string(bodyContentByte))
 			if err = k8sapi.APIServerPatch(a, bodyContentByte, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
 		}
 	}
+}
+
+func secondTransform(i json.Number) (err error, s int64) {
+	fmt.Println(i)
+	if i == "" {
+		s = 60
+	} else if strings.Contains(i.String(), "min") {
+		//strconv.ParseInt(a.Paused.String(), 10, 64)
+		if s, err = strconv.ParseInt(i.String()[0:len(i)-3], 10, 64); err != nil {
+			fmt.Println(s, err)
+			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-3], i)
+			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-3], i)
+			return
+		}
+		s = s * 60
+	} else if strings.Contains(i.String(), "s") {
+		if s, err = strconv.ParseInt(i.String()[0:len(i)-1], 10, 64); err != nil {
+			fmt.Println(s, err)
+			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-1], i)
+			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-1], i)
+			return
+		}
+	} else if php2go.IsNumeric(i) {
+		s, _ = strconv.ParseInt(i.String(), 10, 64)
+		log.Printf("[GrayDpUpdate] {%v} Has Not Unit, So Default Is Second", i)
+	} else {
+		log.Printf("[GrayDpUpdate] Paused: %v Is Null, "+
+			"So GrayDeployment Paused Default Is 1 Minute. \n"+
+			"Notice: GrayDeployment Are published Later More Than 1 Minute.", i)
+		err = fmt.Errorf("[GrayDpUpdate] Paused: %v Is Null, "+
+			"So GrayDeployment Paused Default Is 1 Minute. \n"+
+			"Notice: GrayDeployment Are published Later More Than 1 Minute.", i)
+	}
+	return
 }

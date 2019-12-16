@@ -57,8 +57,10 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 }
 
 func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
+	var paused int64
+	paused, _ = a.Gray.DurationOfStay.Int64()
 	subject := "        乐湃事件通知\n" +
-		"灰度发布更新将持续大约" + strconv.Itoa(a.PausedSecond+60) + "s.....\n"
+		"灰度发布更新将持续大约" + strconv.Itoa(int(paused)+60) + "s.....\n"
 	// date into struck
 	if a.SendFormat == "text" {
 		content = subject +

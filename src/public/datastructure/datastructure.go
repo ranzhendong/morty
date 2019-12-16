@@ -6,31 +6,38 @@ import "encoding/json"
 
 //RequestBody数据结构
 type Request struct {
-	Name            string      `json:"name"`
-	Deployment      string      `json:"deployment"`
-	NameSpace       string      `json:"namespace"`
-	DeploymentApi   string      `json:"deploymentApi"`
-	JavaProject     string      `json:"javaProject"`
-	Version         string      `json:"version"`
-	Image           string      `json:"image"`
-	MinReadySeconds json.Number `json:"minReadySeconds"`
-	Replicas        json.Number `json:"replicas"`
-	Paused          string      `json:"paused"`
-	PausedSecond    int
+	Name            string        `json:"name"`
+	Image           string        `json:"image"`
+	Version         string        `json:"version"`
+	NameSpace       string        `json:"namespace"`
 	SendFormat      string        `json:"sendFormat"`
-	RollingUpdate   RollingUpdate `json:"rollingUpdate"`
+	Deployment      string        `json:"deployment"`
+	JavaProject     string        `json:"javaProject"`
+	DeploymentApi   string        `json:"deploymentApi"`
+	MinReadySeconds json.Number   `json:"minReadySeconds"`
+	Replicas        json.Number   `json:"replicas"`
+	Gray            Gray          `json:"gray"`
 	Info            Info          `json:"info"`
+	RollingUpdate   RollingUpdate `json:"rollingUpdate"`
+	DurationOfStay  int64
+}
+
+type Gray struct {
+	TieredRate       json.Number `json:"tieredRate"`
+	DurationOfStay   json.Number `json:"durationOfStay"`
+	TempStepWiseUp   json.Number `json:"tempStepWiseUp"`
+	TempStepWiseDown json.Number `json:"tempStepWiseDown"`
 }
 
 type Info struct {
 	RequestMan    string      `json:"requestMan"`
-	UpdateSummary string      `json:"updateSummary"`
 	PhoneNumber   json.Number `json:"phoneNumber"`
+	UpdateSummary string      `json:"updateSummary"`
 }
 
 type RollingUpdate struct {
-	MaxUnavailable string `json:"maxUnavailable"`
 	MaxSurge       string `json:"maxSurge"`
+	MaxUnavailable string `json:"maxUnavailable"`
 }
 
 type MySpec struct {
@@ -42,8 +49,8 @@ type MySpec struct {
 //配置文件数据结构
 type Config struct {
 	UserList   []UserList `yaml:"userlist"`
-	Kubernetes Kubernetes `yaml:"kubernetes"`
 	DingDing   DingDing   `yaml:"dingding"`
+	Kubernetes Kubernetes `yaml:"kubernetes"`
 }
 
 type UserList struct {
