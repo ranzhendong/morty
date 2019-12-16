@@ -216,7 +216,7 @@ func errHandle() {
 func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
 	var (
 		minReadySeconds int64
-		d               int
+		d, swd          int
 		m, t            float64
 		err             error
 		interval        = make(chan int)
@@ -231,6 +231,10 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 	t, _ = a.Gray.TieredRate.Float64()
 	os, _ := a.Gray.DurationOfStay.Int64()
 	d = int(os)
+	//osu, _ := a.Gray.TempStepWiseUp.Int64()
+	//swu = int(osu)
+	osd, _ := a.Gray.TempStepWiseDown.Int64()
+	swd = int(osd)
 
 	// create new deployment
 	go func() {
@@ -277,11 +281,11 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			for i := 1; i <= int(math.Ceil(float64(10/int(t*10)))); i++ {
 				t = t * float64(i)
 				replicas <- 1
-				if int(d)/2 > 60 {
-					d = 60
-				}
+				//if int(swd)/2 > 60 {
+				//	swd = 60
+				//}
 				for {
-					time.Sleep(time.Duration(d) * time.Second)
+					time.Sleep(time.Duration(swd) * time.Second)
 					break
 				}
 			}
