@@ -65,7 +65,7 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 
 	//exchange the image from body
 	deployImage := deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"]
-	if a.Image != deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"].(string) {
+	if a.Image != deployImage.(string) {
 		deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"] = a.Image
 	} else {
 		log.Printf("Deployment Image %v == %v, ImageTag Can Not Be Same! ", deployImage.(string), a.Image)
@@ -74,11 +74,12 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	}
 
 	//replace replicas from deployment
-	if a.Replicas.String() != string(0) {
-		deploymentMap["spec"].(map[string]interface{})["replicas"] = a.Replicas
-	} else {
-		a.Replicas = json.Number(deploymentMap["spec"].(map[string]interface{})["replicas"].(string))
+	if t := a.Replicas.String(); t == "" || a.Name == "GrayDeployment" {
+		//a.Replicas = json.Number(deploymentMap["spec"].(map[string]interface{})["replicas"].(string))
+		deploymentMap["spec"].(map[string]interface{})["replicas"] = 1
 		newA = a
+	} else if a.Name == "InstantDeployment" {
+		deploymentMap["spec"].(map[string]interface{})["replicas"] = a.Replicas
 	}
 
 	//replace minReadySeconds from deployment

@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []byte, method string) (err error, returnBodyContentByte []byte) {
+func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []byte, method string, patchName string) (err error, returnBodyContentByte []byte) {
 	var (
 		myRequest                         *http.Request
 		myResponse                        *http.Response
@@ -89,7 +89,11 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 		myRequest.Header.Add("Authorization", "Bearer "+tokenFile)
 	} else if method == "PATCH" {
 		contentType = "application/strategic-merge-patch+json"
-		deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + "temp-" + a.Deployment
+		if patchName == "temp" {
+			deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + patchName + "-" + a.Deployment
+		} else {
+			deploymentUrl = a.DeploymentApi + "/namespaces/" + a.NameSpace + "/deployments/" + a.Deployment
+		}
 		k8sHost = c.Kubernetes.Host
 		requestUrl := k8sHost + deploymentUrl
 		//request
@@ -141,15 +145,15 @@ func apiServer(a datastructure.Request, token *viper.Viper, bodyContentByte []by
 //GET Resource (gain)
 func APIServerGet(a datastructure.Request, token *viper.Viper) (err error, bodyContentByte []byte) {
 	// parameter bodyContentByte is nil
-	if err, bodyContentByte = apiServer(a, token, bodyContentByte, "GET"); err != nil {
+	if err, bodyContentByte = apiServer(a, token, bodyContentByte, "GET", ""); err != nil {
 		return
 	}
 	return
 }
 
 //Patch Resource (replace one of them)
-func APIServerPatch(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
-	if err, _ = apiServer(a, token, DeploymentByte, "PATCH"); err != nil {
+func APIServerPatch(a datastructure.Request, DeploymentByte []byte, token *viper.Viper, patchName string) (err error) {
+	if err, _ = apiServer(a, token, DeploymentByte, "PATCH", patchName); err != nil {
 		return
 	}
 	return
@@ -157,7 +161,7 @@ func APIServerPatch(a datastructure.Request, DeploymentByte []byte, token *viper
 
 //PUT Resource (replace)
 func APIServerPut(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
-	if err, _ = apiServer(a, token, DeploymentByte, "PUT"); err != nil {
+	if err, _ = apiServer(a, token, DeploymentByte, "PUT", ""); err != nil {
 		return
 	}
 	return
@@ -165,7 +169,7 @@ func APIServerPut(a datastructure.Request, DeploymentByte []byte, token *viper.V
 
 //POST Resource (create)
 func APIServerPost(a datastructure.Request, DeploymentByte []byte, token *viper.Viper) (err error) {
-	if err, _ = apiServer(a, token, DeploymentByte, "POST"); err != nil {
+	if err, _ = apiServer(a, token, DeploymentByte, "POST", ""); err != nil {
 		return
 	}
 	return
@@ -173,7 +177,7 @@ func APIServerPost(a datastructure.Request, DeploymentByte []byte, token *viper.
 
 //Delete Resource (delete)
 func APIServerDelete(a datastructure.Request, token *viper.Viper) (err error) {
-	if err, _ = apiServer(a, token, []byte(""), "DELETE"); err != nil {
+	if err, _ = apiServer(a, token, []byte(""), "DELETE", ""); err != nil {
 		return
 	}
 	return
