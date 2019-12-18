@@ -27,6 +27,7 @@ var (
 	sendMessage = make(chan int)
 	errors      = make(chan int)
 	MyErrorChan = make(chan MyError)
+	timer       time.Time
 )
 
 func initCheck(rBody io.Reader) (err error, a datastructure.Request) {
@@ -116,7 +117,7 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	//obtain the request content and phone number
-	content, f = alert.Main(r.URL.String(), a)
+	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
 	if err = ding(a, content, f); err != nil {
 		return
 	}
@@ -197,8 +198,11 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 
 	go goroutinesSend(r, a)
 
+	// gain the time
+	go timeNow()
+
 	//obtain the request content and phone number
-	content, f = alert.Main(r.URL.String(), a)
+	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
 	if err = ding(a, content, f); err != nil {
 		return
 	}
@@ -216,6 +220,11 @@ func errHandle() {
 	}
 }
 
+// now timer
+func timeNow() {
+	timer = time.Now()
+}
+
 // error handle routines
 func goroutinesSend(r *http.Request, a datastructure.Request) {
 	var (
@@ -225,7 +234,9 @@ func goroutinesSend(r *http.Request, a datastructure.Request) {
 	for {
 		select {
 		case <-sendMessage:
-			content, f = alert.Main(r.URL.String(), a)
+			sss := time.Now().Sub(timer)
+			fmt.Println("time.Now().Sub(timer)", sss)
+			content, f = alert.Main("/goroutinesend", a, time.Now().Sub(timer))
 			if err := ding(a, content, f); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -379,6 +390,8 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
+			// send  message
+			sendMessage <- 1
 		case <-replace:
 			log.Println("[Paused] replace")
 			log.Println("[Paused] replace", string(bodyContentByte))
