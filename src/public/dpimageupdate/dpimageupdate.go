@@ -24,6 +24,7 @@ type MyError struct {
 }
 
 var (
+	sendMessage = make(chan int)
 	errors      = make(chan int)
 	MyErrorChan = make(chan MyError)
 )
@@ -127,9 +128,8 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		a, newA         datastructure.Request
 		f               [1]string
 		bodyContentByte []byte
-		s, su, sd       int64
-		//s       int64
-		content string
+		s, asu, su, sd  int64
+		content         string
 	)
 	//Check if body is right
 	if err, a = initCheck(r.Body); err != nil {
@@ -141,19 +141,23 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	//gray deployment timeline
+	// judge the criteria of gray deployment timeline,
 	if err, s = secondTransform(a.Gray.DurationOfStay); err != nil {
 		return
 	}
-	if err, su = secondTransform(a.Gray.TempStepWiseUp); err != nil {
+	if err, asu = secondTransform(a.Gray.AVersionStepWiseUp); err != nil {
 		return
 	}
-	if err, sd = secondTransform(a.Gray.TempStepWiseDown); err != nil {
+	if err, su = secondTransform(a.Gray.BVersionStepWiseUp); err != nil {
+		return
+	}
+	if err, sd = secondTransform(a.Gray.BVersionStepWiseDown); err != nil {
 		return
 	}
 	a.Gray.DurationOfStay = json.Number(strconv.FormatFloat(float64(s), 'f', -1, 64))
-	a.Gray.TempStepWiseUp = json.Number(strconv.FormatFloat(float64(su), 'f', -1, 64))
-	a.Gray.TempStepWiseDown = json.Number(strconv.FormatFloat(float64(sd), 'f', -1, 64))
+	a.Gray.AVersionStepWiseUp = json.Number(strconv.FormatFloat(float64(asu), 'f', -1, 64))
+	a.Gray.BVersionStepWiseUp = json.Number(strconv.FormatFloat(float64(su), 'f', -1, 64))
+	a.Gray.BVersionStepWiseDown = json.Number(strconv.FormatFloat(float64(sd), 'f', -1, 64))
 
 	// TieredRate if right
 	tieredRate := a.Gray.TieredRate
@@ -185,13 +189,13 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	fmt.Println("ccccccddcc", string(bodyContentByte))
-
 	//gray deployment controller Goroutine
 	go pauseGoroutine(a, bodyContentByte, token)
 
 	//  handle the err of pauseGoroutine,if err exist
 	go errHandle()
+
+	go goroutinesSend(r, a)
 
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a)
@@ -201,6 +205,7 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	return
 }
 
+// error handle routines
 func errHandle() {
 	for {
 		select {
@@ -211,31 +216,63 @@ func errHandle() {
 	}
 }
 
+// error handle routines
+func goroutinesSend(r *http.Request, a datastructure.Request) {
+	var (
+		f       [1]string
+		content string
+	)
+	for {
+		select {
+		case <-sendMessage:
+			content, f = alert.Main(r.URL.String(), a)
+			if err := ding(a, content, f); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+				return
+			}
+			return
+		}
+	}
+}
+
+// gray routines
 func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
 	var (
-		specBodyContentByte []byte
-		minReadySeconds     int64
-		v, d, swu, swd      int
-		m, t, st            float64
-		err                 error
-		replace             = make(chan int)
-		replicas            = make(chan int)
-		deletes             = make(chan int)
-		grayInterval        = make(chan int)
-		replicasUpRate      = make(chan int)
-		replicasDownRate    = make(chan int)
-		SCReplicasUpRate    = make(chan int)
-		offLineInterval     = make(chan int)
-		spec                datastructure.MySpec
+		specBodyContentByte               []byte
+		minReadySeconds                   int64
+		v, d, aTimeUp, bTimeUp, bTimeDown int
+		m, t, st                          float64
+		err                               error
+		replace                           = make(chan int)
+		replicas                          = make(chan int)
+		deletes                           = make(chan int)
+		grayInterval                      = make(chan int)
+		replicasUpRate                    = make(chan int)
+		replicasDownRate                  = make(chan int)
+		SCReplicasUpRate                  = make(chan int)
+		offLineInterval                   = make(chan int)
+		spec                              datastructure.MySpec
 	)
 
+	// gray deploy tiered rate
 	t, _ = a.Gray.TieredRate.Float64()
+
+	// old and new version exist time of duration
 	os, _ := a.Gray.DurationOfStay.Int64()
 	d = int(os)
-	osu, _ := a.Gray.TempStepWiseUp.Int64()
-	swu = int(osu)
-	osd, _ := a.Gray.TempStepWiseDown.Int64()
-	swd = int(osd)
+
+	//old version deploy increase stepwise interval
+	avs, _ := a.Gray.AVersionStepWiseUp.Int64()
+	aTimeUp = int(avs)
+
+	//new version deploy increase stepwise interval
+	osu, _ := a.Gray.BVersionStepWiseUp.Int64()
+	bTimeUp = int(osu)
+
+	//old version deploy reduce stepwise interval
+	osd, _ := a.Gray.BVersionStepWiseDown.Int64()
+	bTimeDown = int(osd)
 
 	// create new deployment
 	go func() {
@@ -251,10 +288,10 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		replicasUpRate <- 1
 	}()
 
+	// Interval goroutines
 	go func() {
 		for {
 			select {
-			//grayInterval
 			case <-grayInterval:
 				log.Println("[Paused] grayInterval")
 				for {
@@ -262,7 +299,6 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					break
 				}
 				replace <- 1
-				//offLineInterval
 			case <-offLineInterval:
 				log.Println("[Paused] offLineInterval")
 				for {
@@ -274,9 +310,47 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		}
 	}()
 
+	// replicas goroutines
 	go func() {
 		for {
 			select {
+			case <-SCReplicasUpRate:
+				log.Println("[Paused] SCReplicasUpRate", t)
+				for i := 1; i < int(math.Ceil(float64(10/int(t*10)))); i++ {
+					st = t * float64(i)
+					log.Println("[Paused] SCReplicasUpRate t :", st, i)
+					if 1 < st {
+						break
+					}
+					replicas <- 0
+					replicas <- 3
+					for {
+						time.Sleep(time.Duration(aTimeUp) * time.Second)
+						break
+					}
+				}
+				offLineInterval <- 1
+			case <-replicasUpRate:
+				log.Println("[Paused] replicasUpRate", t)
+				if err = k8sapi.APIServerPost(a, bodyContentByte, token); err != nil {
+					MyErrorChan <- MyError{err}
+					errors <- 1
+				}
+				for i := 1; i < int(math.Ceil(float64(10/int(t*10)))); i++ {
+					st = t * float64(i)
+					if st > 1 {
+						break
+					}
+					replicas <- 0
+					replicas <- 2
+					log.Println("[Paused] replicasUpRate t :", st, i)
+					for {
+						time.Sleep(time.Duration(bTimeUp) * time.Second)
+						break
+					}
+					log.Println("[Paused] replicasUpRate sleep down :")
+				}
+				grayInterval <- 1
 			case <-replicasDownRate:
 				log.Println("[Paused] replicasDownRate", t)
 				for i := 1; i < int(math.Ceil(float64(10/int(t*10))))-1; i++ {
@@ -287,59 +361,24 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					replicas <- 0
 					replicas <- 1
 					for {
-						time.Sleep(time.Duration(swd) * time.Second)
+						time.Sleep(time.Duration(bTimeDown) * time.Second)
 						break
 					}
 				}
 				deletes <- 1
-			case <-replicasUpRate:
-				log.Println("[Paused] replicasUpRate", t)
-				if err = k8sapi.APIServerPost(a, bodyContentByte, token); err != nil {
-					MyErrorChan <- MyError{err}
-					errors <- 1
-				}
-				log.Println("[Paused] replicasUpRate int(math.Ceil(float64(10/int(t*10))))", int(math.Ceil(float64(10/int(t*10)))))
-				for i := 1; i < int(math.Ceil(float64(10/int(t*10)))); i++ {
-					st = t * float64(i)
-					if st > 1 {
-						break
-					}
-					replicas <- 0
-					replicas <- 2
-					log.Println("[Paused] replicasUpRate t :", st, i)
-					for {
-						time.Sleep(time.Duration(swu) * time.Second)
-						break
-					}
-					log.Println("[Paused] replicasUpRate sleep down :")
-				}
-				grayInterval <- 1
-			case <-SCReplicasUpRate:
-				if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
-					MyErrorChan <- MyError{err}
-					errors <- 1
-				}
-				log.Println("[Paused] SCReplicasUpRate", t)
-				for i := 1; i < int(math.Ceil(float64(10/int(t*10)))); i++ {
-					log.Println("[Paused] SCReplicasUpRate t :", st, i)
-					st = t * float64(i)
-					if st > 1 {
-						break
-					}
-					replicas <- 0
-					replicas <- 3
-					for {
-						time.Sleep(time.Duration(swu) * time.Second)
-						break
-					}
-				}
-				offLineInterval <- 1
 			}
 		}
 	}()
 
+	// delete、replace、replicas goroutines
 	for {
 		select {
+		case <-deletes:
+			log.Println("[Paused] deletes")
+			if err = k8sapi.APIServerDelete(a, token); err != nil {
+				MyErrorChan <- MyError{err}
+				errors <- 1
+			}
 		case <-replace:
 			log.Println("[Paused] replace")
 			log.Println("[Paused] replace", string(bodyContentByte))
@@ -353,16 +392,13 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-
-			log.Println("[Paused] replace ????", string(bodyContentByte))
-			log.Println("SCReplicasUpRate???")
-			SCReplicasUpRate <- 1
-		case <-deletes:
-			log.Println("[Paused] deletes")
-			if err = k8sapi.APIServerDelete(a, token); err != nil {
+			if err = k8sapi.APIServerPut(a, bodyContentByte, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
+			log.Println("[Paused] replace ????", string(bodyContentByte))
+			log.Println("SCReplicasUpRate???")
+			SCReplicasUpRate <- 1
 		case <-replicas:
 			if v = <-replicas; v == 1 {
 				log.Println("[Paused] replicasDown")

@@ -23,10 +23,11 @@ type Request struct {
 }
 
 type Gray struct {
-	TieredRate       json.Number `json:"tieredRate"`
-	DurationOfStay   json.Number `json:"durationOfStay"`
-	TempStepWiseUp   json.Number `json:"tempStepWiseUp"`
-	TempStepWiseDown json.Number `json:"tempStepWiseDown"`
+	TieredRate           json.Number `json:"tieredRate"`
+	DurationOfStay       json.Number `json:"durationOfStay"`
+	AVersionStepWiseUp   json.Number `json:"aVersionStepWiseUp"`
+	BVersionStepWiseUp   json.Number `json:"bVersionStepWiseUp"`
+	BVersionStepWiseDown json.Number `json:"bVersionStepWiseDown"`
 }
 
 type Info struct {
