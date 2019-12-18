@@ -2,8 +2,9 @@ package alert
 
 import (
 	"datastructure"
-	"fmt"
+	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,9 +14,8 @@ var (
 )
 
 func Main(requestUrl string, a datastructure.Request, time time.Duration) (content string, f [1]string) {
-	if requestUrl == "/goroutinesend" {
+	if requestUrl == "/endsend" || requestUrl == "/grayendsend" {
 		t = time
-		fmt.Println("t = time", t, time)
 	}
 	// content route
 	route()
@@ -34,24 +34,39 @@ func Main(requestUrl string, a datastructure.Request, time time.Duration) (conte
 func route() {
 	requestMux["/dpupdate"] = dpUpdate
 	requestMux["/graydpupdate"] = grayDpUpdate
-	requestMux["/goroutinesend"] = goroutineSend
+	requestMux["/endsend"] = endSend
+	requestMux["/grayendsend"] = grayEndSend
 }
 
 func dpUpdate(a datastructure.Request) (content string, f [1]string) {
-	var subject = "        乐湃事件通知\n" +
-		"即时更新即将完成.....\n"
+	var (
+		sum, replicas, minReadySeconds int64
+		stringSum                      string
+	)
+	replicas, _ = a.Replicas.Int64()
+	minReadySeconds, _ = a.MinReadySeconds.Int64()
+	sum = replicas * minReadySeconds
+
+	//keep two decimal place
+	stringSum = strconv.FormatFloat(float64(sum)/60, 'f', 3, 64)
+	stringSum = stringSum[0 : strings.Index(stringSum, ".")+2]
+
+	subject := "乐湃事件通知\n" +
+		"触发即时更新操作\n\n" +
+		"耗时大约：" + stringSum + "min" +
+		"(" + strconv.FormatFloat(float64(sum), 'f', -1, 64) + "s)"
 	// date into struck
 	if a.SendFormat == "text" {
 		content = subject +
-			"\n" + "{ " + a.JavaProject + " } 滚动更新进行中" +
+			"\n" + "更新工程：" + a.JavaProject +
 			"\n" + "项目版本：" + a.Version +
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		content = "## " + subject +
-			"\n" + "### **" + a.JavaProject + "**项目滚动更新完成 \n" +
+		content = "# " + subject +
+			"\n" + "## 更新工程：" + a.JavaProject +
 			"\n" + "1. 项目版本：" + a.Version +
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
@@ -65,22 +80,69 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 }
 
 func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
-	var paused int64
-	paused, _ = a.Gray.DurationOfStay.Int64()
-	subject := "        乐湃事件通知\n" +
-		"混合灰度发布更新将持续大约" + strconv.Itoa(int(paused)+60) + "s.....\n"
-	// date into struck
+	var (
+		rt, sum, durationOfStay, aVersionStepWiseUp, bVersionStepWiseUp, bVersionStepWiseDown float64
+		stringSum                                                                             string
+	)
+	rt, _ = a.Gray.TieredRate.Float64()
+	durationOfStay, _ = a.Gray.DurationOfStay.Float64()
+	aVersionStepWiseUp, _ = a.Gray.AVersionStepWiseUp.Float64()
+	bVersionStepWiseUp, _ = a.Gray.BVersionStepWiseUp.Float64()
+	bVersionStepWiseDown, _ = a.Gray.BVersionStepWiseDown.Float64()
+	sum = durationOfStay + (aVersionStepWiseUp+bVersionStepWiseUp+bVersionStepWiseDown)*(math.Floor(1/rt))
+
+	//keep two decimal place
+	stringSum = strconv.FormatFloat(sum/60, 'f', 3, 64)
+	stringSum = stringSum[0 : strings.Index(stringSum, ".")+2]
+
 	if a.SendFormat == "text" {
-		content = subject +
-			"\n" + "{ " + a.JavaProject + " } 滚动更新完成" +
+		subject := "乐湃事件通知\n" +
+			"触发混合灰度更新操作\n" +
+			"耗时大约：" + stringSum + "min" +
+			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)"
+		content = subject + "\n" +
+			"\n更新工程：" + a.JavaProject +
 			"\n" + "项目版本：" + a.Version +
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		content = "## " + subject +
-			"\n" + "### **" + a.JavaProject + "**项目滚动更新完成 \n" +
+		subject := "乐湃事件通知\n" +
+			"触发混合灰度更新操作\n" +
+			"> 耗时大约：**" + stringSum + "min" +
+			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)**"
+		content = "# " + subject + "\n" +
+			"\n## *更新工程：*" + a.JavaProject +
+			"\n" + "1. 工程版本：" + a.Version +
+			"\n" + "2. 镜像版本：" + a.Image +
+			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
+			"\n" + "4. 执行人：" + a.Info.RequestMan +
+			"\n@" + a.Info.PhoneNumber.String()
+	}
+
+	// @somebody
+	f[0] = a.Info.PhoneNumber.String()
+	return
+}
+
+func endSend(a datastructure.Request) (content string, f [1]string) {
+	var subject = "乐湃事件通知\n" +
+		"即时更新已经完成\n" +
+		"总共耗时：" + t.String()
+
+	// date into struck
+	if a.SendFormat == "text" {
+		content = subject +
+			"\n" + "{ " + a.JavaProject + " } 更新完成" +
+			"\n" + "项目版本：" + a.Version +
+			"\n" + "镜像版本：" + a.Image +
+			"\n" + "更新备注：" + a.Info.UpdateSummary +
+			"\n" + "执行人：" + a.Info.RequestMan +
+			"\n@" + a.Info.PhoneNumber.String()
+	} else {
+		content = "# " + subject +
+			"\n" + "## **" + a.JavaProject + "**更新完成" +
 			"\n" + "1. 项目版本：" + a.Version +
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
@@ -93,24 +155,23 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 	return
 }
 
-func goroutineSend(a datastructure.Request) (content string, f [1]string) {
-	var subject = "        乐湃事件通知\n" +
-		"混合灰度发布更新已经完成.....\n" +
+func grayEndSend(a datastructure.Request) (content string, f [1]string) {
+	var subject = "乐湃事件通知\n" +
+		"混合灰度更新已经完成\n" +
 		"总共耗时：" + t.String()
 
-	fmt.Println("总共耗时:", t)
 	// date into struck
 	if a.SendFormat == "text" {
 		content = subject +
-			"\n" + "{ " + a.JavaProject + " } 滚动更新已经完成" +
+			"\n" + "{ " + a.JavaProject + " } 更新完成" +
 			"\n" + "项目版本：" + a.Version +
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		content = "## " + subject +
-			"\n" + "### **" + a.JavaProject + "**滚动更新已经完成 \n" +
+		content = "# " + subject +
+			"\n" + "## **" + a.JavaProject + "**更新完成" +
 			"\n" + "1. 项目版本：" + a.Version +
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +

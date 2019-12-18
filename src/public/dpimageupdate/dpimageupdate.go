@@ -116,6 +116,10 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
+	//// gain the time
+	//go timeNow()
+	//go goroutinesSend(r, a)
+
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
 	if err = ding(a, content, f); err != nil {
@@ -196,10 +200,9 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	//  handle the err of pauseGoroutine,if err exist
 	go errHandle()
 
-	go goroutinesSend(r, a)
-
 	// gain the time
 	go timeNow()
+	go goroutinesSend(r, a)
 
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
@@ -234,9 +237,11 @@ func goroutinesSend(r *http.Request, a datastructure.Request) {
 	for {
 		select {
 		case <-sendMessage:
-			sss := time.Now().Sub(timer)
-			fmt.Println("time.Now().Sub(timer)", sss)
-			content, f = alert.Main("/goroutinesend", a, time.Now().Sub(timer))
+			if v := <-sendMessage; v == 1 {
+				content, f = alert.Main("/endsend", a, time.Now().Sub(timer))
+			} else {
+				content, f = alert.Main("/grayendsend", a, time.Now().Sub(timer))
+			}
 			if err := ding(a, content, f); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -291,7 +296,8 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		if minReadySeconds > 10 {
 			minReadySeconds = 10
 		}
-		log.Printf("[Paused] CoolingTime Need TO %v Gray Update", d+int(minReadySeconds)*2)
+		//log.Printf("[pauseGoroutine] CoolingTime Need TO %v Gray Update", d+int(minReadySeconds)*2)
+		log.Printf("[pauseGoroutine] MinReadySeconds")
 		for {
 			time.Sleep(time.Duration(minReadySeconds) * time.Second)
 			break
@@ -304,14 +310,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		for {
 			select {
 			case <-grayInterval:
-				log.Println("[Paused] grayInterval")
+				log.Println("[pauseGoroutine] GrayInterval Channel Is Running")
 				for {
 					time.Sleep(time.Duration(d) * time.Second)
 					break
 				}
 				replace <- 1
 			case <-offLineInterval:
-				log.Println("[Paused] offLineInterval")
+				log.Println("[pauseGoroutine] OffLineInterval Channel Is Running")
 				for {
 					time.Sleep(time.Duration(d) * time.Second)
 					break
@@ -326,15 +332,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		for {
 			select {
 			case <-SCReplicasUpRate:
-				log.Println("[Paused] SCReplicasUpRate", t)
 				for i := 1; i < int(math.Ceil(float64(10/int(t*10)))); i++ {
 					st = t * float64(i)
-					log.Println("[Paused] SCReplicasUpRate t :", st, i)
 					if 1 < st {
 						break
 					}
 					replicas <- 0
 					replicas <- 3
+					log.Println("[pauseGoroutine] SCReplicasUpRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(aTimeUp) * time.Second)
 						break
@@ -342,7 +347,6 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 				}
 				offLineInterval <- 1
 			case <-replicasUpRate:
-				log.Println("[Paused] replicasUpRate", t)
 				if err = k8sapi.APIServerPost(a, bodyContentByte, token); err != nil {
 					MyErrorChan <- MyError{err}
 					errors <- 1
@@ -354,16 +358,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					}
 					replicas <- 0
 					replicas <- 2
-					log.Println("[Paused] replicasUpRate t :", st, i)
+					log.Println("[pauseGoroutine] ReplicasUpRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(bTimeUp) * time.Second)
 						break
 					}
-					log.Println("[Paused] replicasUpRate sleep down :")
 				}
 				grayInterval <- 1
 			case <-replicasDownRate:
-				log.Println("[Paused] replicasDownRate", t)
 				for i := 1; i < int(math.Ceil(float64(10/int(t*10))))-1; i++ {
 					st = t * float64(i)
 					if st > 1 {
@@ -371,6 +373,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					}
 					replicas <- 0
 					replicas <- 1
+					log.Println("[pauseGoroutine] ReplicasDownRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(bTimeDown) * time.Second)
 						break
@@ -385,16 +388,16 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 	for {
 		select {
 		case <-deletes:
-			log.Println("[Paused] deletes")
+			log.Println("[pauseGoroutine] Deletes Channel Is Running")
 			if err = k8sapi.APIServerDelete(a, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
 			// send  message
-			sendMessage <- 1
+			sendMessage <- 0
+			sendMessage <- 2
 		case <-replace:
-			log.Println("[Paused] replace")
-			log.Println("[Paused] replace", string(bodyContentByte))
+			log.Println("[pauseGoroutine] Replace Channel Is Running")
 			if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -409,27 +412,24 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
-			log.Println("[Paused] replace ????", string(bodyContentByte))
-			log.Println("SCReplicasUpRate???")
 			SCReplicasUpRate <- 1
 		case <-replicas:
 			if v = <-replicas; v == 1 {
-				log.Println("[Paused] replicasDown")
+				log.Println("[pauseGoroutine] ReplicasDownRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * (1 - st))
 				}
 				spec.Spec.Replicas = int(f())
-				fmt.Println("replicasDown:", spec.Spec.Replicas)
 			} else if v == 2 {
-				log.Println("[Paused] replicasUp")
+				log.Println("[pauseGoroutine] ReplicasUpRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * st)
 				}
 				spec.Spec.Replicas = int(f())
 			} else if v == 3 {
-				log.Println("[Paused] SCReplicasUp")
+				log.Println("[pauseGoroutine] SCReplicasUpRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * st)
@@ -455,7 +455,6 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			}
 		}
 	}
-
 }
 
 func secondTransform(i json.Number) (err error, s int64) {
@@ -466,26 +465,26 @@ func secondTransform(i json.Number) (err error, s int64) {
 		//strconv.ParseInt(a.Paused.String(), 10, 64)
 		if s, err = strconv.ParseInt(i.String()[0:len(i)-3], 10, 64); err != nil {
 			fmt.Println(s, err)
-			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-3], i)
-			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-3], i)
+			log.Printf("[SecondTransform] {%v} Is Not Number In %v", i[0:len(i)-3], i)
+			err = fmt.Errorf("[SecondTransform] {%v} Is Not Number In %v", i[0:len(i)-3], i)
 			return
 		}
 		s = s * 60
 	} else if strings.Contains(i.String(), "s") {
 		if s, err = strconv.ParseInt(i.String()[0:len(i)-1], 10, 64); err != nil {
 			fmt.Println(s, err)
-			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-1], i)
-			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", i[0:len(i)-1], i)
+			log.Printf("[SecondTransform] {%v} Is Not Number In %v", i[0:len(i)-1], i)
+			err = fmt.Errorf("[SecondTransform] {%v} Is Not Number In %v", i[0:len(i)-1], i)
 			return
 		}
 	} else if php2go.IsNumeric(i) {
 		s, _ = strconv.ParseInt(i.String(), 10, 64)
-		log.Printf("[GrayDpUpdate] {%v} Has Not Unit, So Default Is Second", i)
+		log.Printf("[SecondTransform] {%v} Has Not Unit, So Default Is Second", i)
 	} else {
-		log.Printf("[GrayDpUpdate] Paused: %v Is Null, "+
+		log.Printf("[SecondTransform] Paused: %v Is Null, "+
 			"So GrayDeployment Paused Default Is 1 Minute. \n"+
 			"Notice: GrayDeployment Are published Later More Than 1 Minute.", i)
-		err = fmt.Errorf("[GrayDpUpdate] Paused: %v Is Null, "+
+		err = fmt.Errorf("[SecondTransform] Paused: %v Is Null, "+
 			"So GrayDeployment Paused Default Is 1 Minute. \n"+
 			"Notice: GrayDeployment Are published Later More Than 1 Minute.", i)
 	}
