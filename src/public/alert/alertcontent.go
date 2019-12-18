@@ -53,12 +53,12 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 
 	subject := "乐湃事件通知\n" +
 		"触发即时更新操作\n\n" +
-		"耗时大约：" + stringSum + "min" +
+		"预计耗时约：" + stringSum + "min" +
 		"(" + strconv.FormatFloat(float64(sum), 'f', -1, 64) + "s)"
 	// date into struck
 	if a.SendFormat == "text" {
 		content = subject +
-			"\n" + "更新工程：" + a.JavaProject +
+			"\n" + "**更新工程：" + a.JavaProject + "**" +
 			"\n" + "项目版本：" + a.Version +
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
@@ -98,7 +98,7 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 	if a.SendFormat == "text" {
 		subject := "乐湃事件通知\n" +
 			"触发混合灰度更新操作\n" +
-			"耗时大约：" + stringSum + "min" +
+			"预计耗时约：" + stringSum + "min" +
 			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)"
 		content = subject + "\n" +
 			"\n更新工程：" + a.JavaProject +
@@ -110,10 +110,10 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 	} else {
 		subject := "乐湃事件通知\n" +
 			"触发混合灰度更新操作\n" +
-			"> 耗时大约：**" + stringSum + "min" +
+			"> 预计耗时约：**" + stringSum + "min" +
 			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)**"
 		content = "# " + subject + "\n" +
-			"\n## *更新工程：*" + a.JavaProject +
+			"\n## 更新工程**" + a.JavaProject + "**" +
 			"\n" + "1. 工程版本：" + a.Version +
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
@@ -129,7 +129,7 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 func endSend(a datastructure.Request) (content string, f [1]string) {
 	var subject = "乐湃事件通知\n" +
 		"即时更新已经完成\n" +
-		"总共耗时：" + t.String()
+		"最终总共耗时：" + t.String()
 
 	// date into struck
 	if a.SendFormat == "text" {
@@ -156,20 +156,29 @@ func endSend(a datastructure.Request) (content string, f [1]string) {
 }
 
 func grayEndSend(a datastructure.Request) (content string, f [1]string) {
-	var subject = "乐湃事件通知\n" +
-		"混合灰度更新已经完成\n" +
-		"总共耗时：" + t.String()
+	var (
+		subject, stringT string
+	)
+
+	//keep two decimal place
+	stringT = t.String()[0 : strings.Index(t.String(), ".")+3]
 
 	// date into struck
 	if a.SendFormat == "text" {
+		subject = "乐湃事件通知\n" +
+			"混合灰度更新已经完成\n" +
+			"最终总共耗时：" + stringT + "s"
 		content = subject +
-			"\n" + "{ " + a.JavaProject + " } 更新完成" +
+			"\n" + a.JavaProject + " 更新完成" +
 			"\n" + "项目版本：" + a.Version +
 			"\n" + "镜像版本：" + a.Image +
 			"\n" + "更新备注：" + a.Info.UpdateSummary +
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
+		subject = "乐湃事件通知\n" +
+			"混合灰度更新已经完成\n" +
+			"> 最终总共耗时：**" + stringT + "s**"
 		content = "# " + subject +
 			"\n" + "## **" + a.JavaProject + "**更新完成" +
 			"\n" + "1. 项目版本：" + a.Version +
