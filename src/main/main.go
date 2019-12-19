@@ -45,8 +45,9 @@ func main() {
 // 路由
 func route(mux map[string]func(http.ResponseWriter, *http.Request)) {
 	//镜像更新
-	mux["/dpupdate"] = dpUpdate
-	mux["/graydpupdate"] = grayDpUpdate
+	mux["/deployupdate"] = deploymentUpdate
+	mux["/graydeployupdate"] = grayDeploymentUpdate
+	mux["/rollback"] = rollBack
 }
 
 //路由的转发
@@ -59,19 +60,30 @@ func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, "[ServeHTTP] URL:"+r.URL.String()+"IS NOT EXIST")
 }
 
-func dpUpdate(w http.ResponseWriter, r *http.Request) {
-	if err := dpimageupdate.DpUpdate(r, token); err != nil {
+//instant update
+func deploymentUpdate(w http.ResponseWriter, r *http.Request) {
+	if err := dpimageupdate.Update(r, token); err != nil {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return
 	}
-	_, _ = io.WriteString(w, "[Main.DpUpdate] Deployment Image Update Complete!")
+	_, _ = io.WriteString(w, "[Main.DeploymentUpdate] Deployment Image Update Complete!")
 }
 
-func grayDpUpdate(w http.ResponseWriter, r *http.Request) {
+//
+func grayDeploymentUpdate(w http.ResponseWriter, r *http.Request) {
 	//dpimageupd	ate.HandleMsg()
-	if err := dpimageupdate.GrayDpUpdate(r, token); err != nil {
+	if err := dpimageupdate.GrayUpdate(r, token); err != nil {
 		_, _ = io.WriteString(w, fmt.Sprint(err))
 		return
 	}
-	_, _ = io.WriteString(w, "[Main.GrayDpUpdate] Deployment Image Update Complete!")
+	_, _ = io.WriteString(w, "[Main.GrayDeploymentUpdate] Deployment Image Update Complete!")
+}
+
+func rollBack(w http.ResponseWriter, r *http.Request) {
+	//dpimageupd	ate.HandleMsg()
+	if err := dpimageupdate.RollBack(r, token); err != nil {
+		_, _ = io.WriteString(w, fmt.Sprint(err))
+		return
+	}
+	_, _ = io.WriteString(w, "[Main.RollBack] Deployment Rollback Successful!")
 }

@@ -41,9 +41,24 @@ type RollingUpdate struct {
 	MaxUnavailable string `json:"maxUnavailable"`
 }
 
+//replicas struct
 type MySpec struct {
 	Spec struct {
 		Replicas int `json:"replicas"`
+	} `json:"spec"`
+}
+
+//replicas struct
+type MyImage struct {
+	Spec struct {
+		Template struct {
+			Spec struct {
+				Containers [1]struct {
+					Name  string `json:"name"`
+					Image string `json:"image"`
+				} `json:"containers"`
+			} `json:"spec"`
+		} `json:"template"`
 	} `json:"spec"`
 }
 

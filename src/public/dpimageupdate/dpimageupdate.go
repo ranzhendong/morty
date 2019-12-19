@@ -75,7 +75,7 @@ func anonymousReplace(a datastructure.Request, f func(datastructure.Request) (er
 	return f(a)
 }
 
-func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
+func Update(r *http.Request, token *viper.Viper) (err error) {
 	var (
 		a, newA         datastructure.Request
 		f               [1]string
@@ -116,10 +116,6 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 		return
 	}
 
-	//// gain the time
-	//go timeNow()
-	//go goroutinesSend(r, a)
-
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
 	if err = ding(a, content, f); err != nil {
@@ -128,7 +124,7 @@ func DpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	return
 }
 
-func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
+func GrayUpdate(r *http.Request, token *viper.Viper) (err error) {
 	var (
 		a, newA         datastructure.Request
 		f               [1]string
@@ -168,8 +164,8 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	tieredRate := a.Gray.TieredRate
 	if strings.Contains(a.Gray.TieredRate.String(), "%") {
 		if s, err = strconv.ParseInt(tieredRate.String()[0:len(tieredRate.String())-1], 10, 64); err != nil {
-			log.Printf("[GrayDpUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
-			err = fmt.Errorf("[GrayDpUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
+			log.Printf("[GrayUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
+			err = fmt.Errorf("[GrayUpdate] {%v} Is Not Number In %v", tieredRate[0:len(tieredRate)-1], tieredRate)
 			return
 		}
 		a.Gray.TieredRate = json.Number(strconv.FormatFloat(float64(s)*0.01, 'f', -1, 64))
@@ -195,14 +191,14 @@ func GrayDpUpdate(r *http.Request, token *viper.Viper) (err error) {
 	}
 
 	//gray deployment controller Goroutine
-	go pauseGoroutine(a, bodyContentByte, token)
+	go grayGoroutine(a, bodyContentByte, token)
 
 	//  handle the err of pauseGoroutine,if err exist
 	go errHandle()
 
 	// gain the time
 	go timeNow()
-	go goroutinesSend(r, a)
+	go dingCallBack(r, a)
 
 	//obtain the request content and phone number
 	content, f = alert.Main(r.URL.String(), a, time.Duration(1))
@@ -229,7 +225,7 @@ func timeNow() {
 }
 
 // error handle routines
-func goroutinesSend(r *http.Request, a datastructure.Request) {
+func dingCallBack(r *http.Request, a datastructure.Request) {
 	var (
 		f       [1]string
 		content string
@@ -253,7 +249,7 @@ func goroutinesSend(r *http.Request, a datastructure.Request) {
 }
 
 // gray routines
-func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
+func grayGoroutine(a datastructure.Request, bodyContentByte []byte, token *viper.Viper) {
 	var (
 		specBodyContentByte               []byte
 		minReadySeconds                   int64
@@ -297,7 +293,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			minReadySeconds = 10
 		}
 		//log.Printf("[pauseGoroutine] CoolingTime Need TO %v Gray Update", d+int(minReadySeconds)*2)
-		log.Printf("[pauseGoroutine] MinReadySeconds")
+		log.Printf("[GrayGoroutine] MinReadySeconds")
 		for {
 			time.Sleep(time.Duration(minReadySeconds) * time.Second)
 			break
@@ -310,14 +306,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 		for {
 			select {
 			case <-grayInterval:
-				log.Println("[pauseGoroutine] GrayInterval Channel Is Running")
+				log.Println("[GrayGoroutine] GrayInterval Channel Is Running")
 				for {
 					time.Sleep(time.Duration(d) * time.Second)
 					break
 				}
 				replace <- 1
 			case <-offLineInterval:
-				log.Println("[pauseGoroutine] OffLineInterval Channel Is Running")
+				log.Println("[GrayGoroutine] OffLineInterval Channel Is Running")
 				for {
 					time.Sleep(time.Duration(d) * time.Second)
 					break
@@ -339,7 +335,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					}
 					replicas <- 0
 					replicas <- 3
-					log.Println("[pauseGoroutine] SCReplicasUpRate Channel Is Running", st)
+					log.Println("[GrayGoroutine] SCReplicasUpRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(aTimeUp) * time.Second)
 						break
@@ -358,7 +354,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					}
 					replicas <- 0
 					replicas <- 2
-					log.Println("[pauseGoroutine] ReplicasUpRate Channel Is Running", st)
+					log.Println("[GrayGoroutine] ReplicasUpRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(bTimeUp) * time.Second)
 						break
@@ -373,7 +369,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 					}
 					replicas <- 0
 					replicas <- 1
-					log.Println("[pauseGoroutine] ReplicasDownRate Channel Is Running", st)
+					log.Println("[GrayGoroutine] ReplicasDownRate Channel Is Running", st)
 					for {
 						time.Sleep(time.Duration(bTimeDown) * time.Second)
 						break
@@ -388,7 +384,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 	for {
 		select {
 		case <-deletes:
-			log.Println("[pauseGoroutine] Deletes Channel Is Running")
+			log.Println("[GrayGoroutine] Deletes Channel Is Running")
 			if err = k8sapi.APIServerDelete(a, token); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
@@ -397,14 +393,14 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			sendMessage <- 0
 			sendMessage <- 2
 		case <-replace:
-			log.Println("[pauseGoroutine] Replace Channel Is Running")
+			log.Println("[GrayGoroutine] Replace Channel Is Running")
 			if err, bodyContentByte = eliminateStatus(bodyContentByte); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
 			//replace resource from deployment, include image, replicas
 			a.Name = "InstantDeployment"
-			if err, bodyContentByte = ReplaceResourceName(a, bodyContentByte); err != nil {
+			if err, bodyContentByte = replaceResourceName(a, bodyContentByte); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}
@@ -415,27 +411,27 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 			SCReplicasUpRate <- 1
 		case <-replicas:
 			if v = <-replicas; v == 1 {
-				log.Println("[pauseGoroutine] ReplicasDownRate.Replicas Channel Is Running")
+				log.Println("[GrayGoroutine] ReplicasDownRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * (1 - st))
 				}
 				spec.Spec.Replicas = int(f())
 			} else if v == 2 {
-				log.Println("[pauseGoroutine] ReplicasUpRate.Replicas Channel Is Running")
+				log.Println("[GrayGoroutine] ReplicasUpRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * st)
 				}
 				spec.Spec.Replicas = int(f())
 			} else if v == 3 {
-				log.Println("[pauseGoroutine] SCReplicasUpRate.Replicas Channel Is Running")
+				log.Println("[GrayGoroutine] SCReplicasUpRate.Replicas Channel Is Running")
 				f := func() (l float64) {
 					m, _ = a.Replicas.Float64()
 					return math.Ceil(m * st)
 				}
 				spec.Spec.Replicas = int(f())
-				if err, specBodyContentByte = ReplaceResourceReplicas(spec); err != nil {
+				if err, specBodyContentByte = replaceResourceReplicas(spec); err != nil {
 					MyErrorChan <- MyError{err}
 					errors <- 1
 				}
@@ -445,7 +441,7 @@ func pauseGoroutine(a datastructure.Request, bodyContentByte []byte, token *vipe
 				}
 				continue
 			}
-			if err, specBodyContentByte = ReplaceResourceReplicas(spec); err != nil {
+			if err, specBodyContentByte = replaceResourceReplicas(spec); err != nil {
 				MyErrorChan <- MyError{err}
 				errors <- 1
 			}

@@ -32,8 +32,9 @@ func Main(requestUrl string, a datastructure.Request, time time.Duration) (conte
 }
 
 func route() {
-	requestMux["/dpupdate"] = dpUpdate
-	requestMux["/graydpupdate"] = grayDpUpdate
+	requestMux["/deployupdate"] = dpUpdate
+	requestMux["/graydeployupdate"] = grayDpUpdate
+	requestMux["/rollback"] = rollBack
 	requestMux["/endsend"] = endSend
 	requestMux["/grayendsend"] = grayEndSend
 }
@@ -185,6 +186,39 @@ func grayEndSend(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "2. 镜像版本：" + a.Image +
 			"\n" + "3. 更新备注：" + a.Info.UpdateSummary +
 			"\n" + "4. 执行人：" + a.Info.RequestMan +
+			"\n@" + a.Info.PhoneNumber.String()
+	}
+
+	// @somebody
+	f[0] = a.Info.PhoneNumber.String()
+	return
+}
+
+func rollBack(a datastructure.Request) (content string, f [1]string) {
+	var (
+		subject string
+	)
+
+	// date into struck
+	if a.SendFormat == "text" {
+		subject = "乐湃事件通知\n" +
+			"触发回滚操作\n"
+		content = subject +
+			"\n" + "回滚项目：" + a.JavaProject +
+			"\n" + "回滚项目版本：" + a.Version +
+			"\n" + "回滚镜像版本：" + a.Image +
+			"\n" + "回滚更新备注：" + a.Info.UpdateSummary +
+			"\n" + "回滚执行人：" + a.Info.RequestMan +
+			"\n@" + a.Info.PhoneNumber.String()
+	} else {
+		subject = "乐湃事件通知\n" +
+			"触发回滚操作\n"
+		content = "# " + subject +
+			"\n" + "## 回滚项目：**" + a.JavaProject + "**" +
+			"\n" + "- 回滚项目版本：" + a.Version +
+			"\n" + "- 回滚镜像版本：" + a.Image +
+			"\n" + "- 回滚更新备注：" + a.Info.UpdateSummary +
+			"\n" + "- 回滚执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	}
 

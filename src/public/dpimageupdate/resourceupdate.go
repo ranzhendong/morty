@@ -27,7 +27,6 @@ func eliminateStatus(bodyContentByte []byte) (err error, newDeploymentByte []byt
 	delete(metadataMap, "creationTimestamp")
 	delete(metadataMap, "generation")
 	delete(metadataMap, "uid")
-	delete(metadataMap, "annotations")
 	delete(metadataMap, "selfLink")
 
 	//Marshal the new body
@@ -113,7 +112,7 @@ func replaceResource(a datastructure.Request, bodyContentByte []byte) (err error
 	return
 }
 
-func ReplaceResourceName(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
+func replaceResourceName(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
 	var (
 		deploymentMap map[string]interface{}
 	)
@@ -143,12 +142,48 @@ func ReplaceResourceName(a datastructure.Request, bodyContentByte []byte) (err e
 	return
 }
 
-func ReplaceResourceReplicas(spec datastructure.MySpec) (err error, newDeploymentByte []byte) {
-	//Marshal the new body
+func replaceResourceReplicas(spec datastructure.MySpec) (err error, newDeploymentByte []byte) {
+	//Marshal the replicas struct
 	if newDeploymentByte, err = json.Marshal(spec); err != nil {
 		log.Printf("[ReplaceResourceReplicas] DeploymentByte TO Json Change ERR: %v", err)
 		err = fmt.Errorf("[ReplaceResourceReplicas] DeploymentByte TO Json Change ERR: %v", err)
 		return
 	}
 	return
+}
+
+func replaceResourceVersion(a datastructure.Request, bodyContentByte []byte) (err error, newDeploymentByte []byte) {
+	var (
+		myImage       datastructure.MyImage
+		deploymentMap map[string]interface{}
+	)
+
+	//Unmarshal the body
+	if err = json.Unmarshal(bodyContentByte, &deploymentMap); err != nil {
+		log.Printf("[ReplaceResourceName] Json TO DeploymentMap Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResourceName] Json TO DeploymentMap Json Change ERR: %v", err)
+		return
+	}
+
+	//exchange the image from body
+	deployImage := deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["image"]
+	if a.Image != deployImage.(string) {
+		myImage.Spec.Template.Spec.Containers[0].Image = a.Image
+	} else {
+		log.Printf("RollBack Image %v == %v, ImageTag Is The Same! ", deployImage.(string), a.Image)
+		err = fmt.Errorf("RollBack Image %v == %v, ImageTag Is The Same! ", deployImage.(string), a.Image)
+		return
+	}
+
+	//replace name
+	myImage.Spec.Template.Spec.Containers[0].Name = deploymentMap["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})["name"].(string)
+
+	//Marshal the image struct
+	if newDeploymentByte, err = json.Marshal(myImage); err != nil {
+		log.Printf("[ReplaceResourceVersion] DeploymentByte TO Json Change ERR: %v", err)
+		err = fmt.Errorf("[ReplaceResourceVersion] DeploymentByte TO Json Change ERR: %v", err)
+		return
+	}
+	return
+
 }
