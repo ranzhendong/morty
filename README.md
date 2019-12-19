@@ -5,7 +5,7 @@
 ![Travis (README.assets/master.svg) branch](https://img.shields.io/travis/ranzhendong/morty/master?style=plastic)
 ![GitHub release (README.assets/lecter-1576747587037.svg)](https://img.shields.io/github/v/release/ranzhendong/morty?include_prereleases&style=plastic)
 ![GitHub last commit (README.assets/master-1576747587023.svg)](https://img.shields.io/github/last-commit/ranzhendong/morty/master?style=plastic)
-![GitHub](README.assets/morty-1576752705949.svg)
+![GitHub](https://img.shields.io/github/license/ranzhendong/morty?style=plastic)
 
 [Morty](#Morty)
 
@@ -25,6 +25,8 @@
 
 
 
+
+
 ## 介绍
 
 &emsp;&emsp;Morty是以golang语言为基础而开发apiserver，借助deployment特性对kubernetes中deployement管理项目进行更新以及回滚。包含以下三种功能：
@@ -32,6 +34,10 @@
 - 即时更新
 - 混合阶梯灰度更新
 - 回滚
+
+
+
+
 
 ## 配置
 
@@ -56,6 +62,8 @@ userlist:
 
 
 
+
+
 ### k8s配置kubernetes
 
 ```yaml
@@ -77,9 +85,13 @@ kubernetes:
 
 
 
+
+
 ### 钉钉配置dingding
 
 &emsp;&emsp;需要将钉钉机器人地址填写到**robotsurl**，注alertcontent意钉钉机器人有关键字过滤，防止恶意刷取消息，因此需要在源码部分[alertcontent.go](https://github.com/ranzhendong/morty/blob/master/src/public/alert/alertcontent.go)文件当中进行修改**keywords**字段。保证消息可以正常发送。
+
+
 
 
 
@@ -90,6 +102,8 @@ kubernetes:
 &emsp;&emsp;下面的三个功能都是围绕以deployment为基础进行维护的pod的更新，对于其他方式启动的pod暂时不支持更新。
 
 &emsp;&emsp;这个软件我建议结合awx（ansible web管理项目）进行使用。测试的话可以使用curl或者postman；生产环境，不建议直接通过api对服务进行请求。
+
+
 
 
 
@@ -105,15 +119,21 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
+
+
 #### 使用方式
 
 &emsp;&emsp;演示我使用postman对接口进行请求。
 
 
 
+
+
 #### 路由
 
 **&emsp;&emsp;/deployupdate**
+
+
 
 
 
@@ -143,6 +163,8 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 	}
 }
 ```
+
+
 
 
 
@@ -183,6 +205,8 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
+
+
 #### 请求方式curl
 
 &emsp;&emsp;可以构造curl进行请求
@@ -211,6 +235,8 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 	}
 }'
 ```
+
+
 
 
 
