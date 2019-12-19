@@ -15,7 +15,7 @@
   - [k8s配置kubernetes](#k8s配置kubernetes)
   - [钉钉配置dingding](#钉钉配置dingding)
 - [使用](#使用)
-  - [即时发布](#即时发布)
+  - [即时更新](#即时更新)
     - [使用方式](#使用方式)
     - [路由](#路由)
     - [数据格式](#数据格式)
@@ -23,9 +23,7 @@
     - [请求方式curl](#请求方式curl)
     - [返回结果](#返回结果)
 
-
-
-
+</br></br>
 
 ## 介绍
 
@@ -37,13 +35,13 @@
 
 
 
-
+</br></br>
 
 ## 配置
 
 &emsp;&emsp;通过config.yaml对配置进行管理，内部采用[viper](https://github.com/spf13/viper)实现。
 
-
+</br>
 
 ### k8s配置kubernetes用户配置userlist
 
@@ -60,9 +58,7 @@ userlist:
 
 - **phonenumber:** 用户对应的电话号码，用于钉钉@。
 
-
-
-
+</br>
 
 ### k8s配置kubernetes
 
@@ -85,7 +81,7 @@ kubernetes:
 
 
 
-
+</br>
 
 ### 钉钉配置dingding
 
@@ -93,7 +89,7 @@ kubernetes:
 
 
 
-
+</br></br>
 
 ## 使用
 
@@ -105,9 +101,9 @@ kubernetes:
 
 
 
+</br>
 
-
-### 即时发布
+### 即时更新
 
 &emsp;&emsp;即时发布，顾名思义就是新版本镜像会立即生效，更新完成的时间依据replicas、minReadySeconds和pod内部健康检查参数设置，但是总的来说deployment会接管一切，更新完成。
 
@@ -119,7 +115,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
-
+</br>
 
 #### 使用方式
 
@@ -127,7 +123,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
-
+</br>
 
 #### 路由
 
@@ -135,7 +131,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
-
+</br>
 
 #### 数据格式
 
@@ -166,7 +162,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
-
+</br>
 
 #### 参数说明
 
@@ -205,7 +201,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 
 
-
+</br>
 
 #### 请求方式curl
 
@@ -238,7 +234,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 
 
-
+</br>
 
 #### 返回结果
 
@@ -249,6 +245,16 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 ```text
 [Main.DpUpdate] Deployment Image Update Complete!
 ```
+
+
+
+</br></br>
+
+### 混合阶梯灰度更新
+
+
+
+
 
 
 
