@@ -66,7 +66,7 @@ kubernetes:
 
 #### 钉钉配置dingding
 
-需要将钉钉机器人地址填写到**robotsurl**，注意
+需要将钉钉机器人地址填写到**robotsurl**，注意需要将关键字进行过滤
 
 
 

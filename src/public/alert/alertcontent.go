@@ -11,6 +11,7 @@ import (
 var (
 	requestMux = make(map[string]func(datastructure.Request) (content string, f [1]string))
 	t          time.Duration
+	keywords   = "乐湃"
 )
 
 func Main(requestUrl string, a datastructure.Request, time time.Duration) (content string, f [1]string) {
@@ -52,7 +53,7 @@ func dpUpdate(a datastructure.Request) (content string, f [1]string) {
 	stringSum = strconv.FormatFloat(float64(sum)/60, 'f', 3, 64)
 	stringSum = stringSum[0 : strings.Index(stringSum, ".")+2]
 
-	subject := "乐湃事件通知\n" +
+	subject := keywords + "事件通知\n" +
 		"触发即时更新操作\n\n" +
 		"预计耗时约：" + stringSum + "min" +
 		"(" + strconv.FormatFloat(float64(sum), 'f', -1, 64) + "s)"
@@ -97,7 +98,7 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 	stringSum = stringSum[0 : strings.Index(stringSum, ".")+2]
 
 	if a.SendFormat == "text" {
-		subject := "乐湃事件通知\n" +
+		subject := keywords + "事件通知\n" +
 			"触发混合灰度更新操作\n" +
 			"预计耗时约：" + stringSum + "min" +
 			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)"
@@ -109,7 +110,7 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		subject := "乐湃事件通知\n" +
+		subject := keywords + "事件通知\n" +
 			"触发混合灰度更新操作\n" +
 			"> 预计耗时约：**" + stringSum + "min" +
 			"(" + strconv.FormatFloat(sum, 'f', -1, 64) + "s)**"
@@ -128,7 +129,7 @@ func grayDpUpdate(a datastructure.Request) (content string, f [1]string) {
 }
 
 func endSend(a datastructure.Request) (content string, f [1]string) {
-	var subject = "乐湃事件通知\n" +
+	var subject = keywords + "事件通知\n" +
 		"即时更新已经完成\n" +
 		"最终总共耗时：" + t.String()
 
@@ -166,7 +167,7 @@ func grayEndSend(a datastructure.Request) (content string, f [1]string) {
 
 	// date into struck
 	if a.SendFormat == "text" {
-		subject = "乐湃事件通知\n" +
+		subject = keywords + "事件通知\n" +
 			"混合灰度更新已经完成\n" +
 			"最终总共耗时：" + stringT + "s"
 		content = subject +
@@ -177,7 +178,7 @@ func grayEndSend(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		subject = "乐湃事件通知\n" +
+		subject = keywords + "事件通知\n" +
 			"混合灰度更新已经完成\n" +
 			"> 最终总共耗时：**" + stringT + "s**"
 		content = "# " + subject +
@@ -201,7 +202,7 @@ func rollBack(a datastructure.Request) (content string, f [1]string) {
 
 	// date into struck
 	if a.SendFormat == "text" {
-		subject = "乐湃事件通知\n" +
+		subject = keywords + "事件通知\n" +
 			"触发回滚操作\n"
 		content = subject +
 			"\n" + "回滚项目：" + a.JavaProject +
@@ -211,7 +212,7 @@ func rollBack(a datastructure.Request) (content string, f [1]string) {
 			"\n" + "回滚执行人：" + a.Info.RequestMan +
 			"\n@" + a.Info.PhoneNumber.String()
 	} else {
-		subject = "乐湃事件通知\n" +
+		subject = keywords + "事件通知\n" +
 			"触发回滚操作\n"
 		content = "# " + subject +
 			"\n" + "## 回滚项目：**" + a.JavaProject + "**" +
