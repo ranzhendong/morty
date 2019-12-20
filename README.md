@@ -10,40 +10,36 @@
 [Morty](#Morty)
 
 - [介绍](#介绍)
+
 - [配置](#配置)
   - [用户配置userlist](#用户配置userlist)
   - [k8s配置kubernetes](#k8s配置kubernetes)
   - [钉钉配置dingding](#钉钉配置dingding)
+
 - [使用](#使用)
-  - [即时更新](#即时更新)
+  - [InstantUpdate即时更新](#InstantUpdate即时更新)
+    - [使用方式](InstantUpdate#使用方式)
+    - [路由](#InstantUpdate路由)
+    - [数据格式](#InstantUpdate数据格式)
+    - [参数说明](#InstantUpdate参数说明)
+    - [请求方式curl](#InstantUpdate请求方式curl)
+    - [返回结果](#InstantUpdate返回结果)
     
-    - [使用方式](#使用方式)
+  - [GrayUpdate混合阶梯灰度更新](#GrayUpdate混合阶梯灰度更新)
+    - [使用方式](#GrayUpdate使用方式)
+    - [路由](#GrayUpdate路由)
+    - [数据格式](#GrayUpdate数据格式)
+    - [参数说明](#GrayUpdate参数说明)
+    - [请求方式curl](#GrayUpdate请求方式curl)
+    - [返回结果](#GrayUpdate返回结果)
     
-    - [路由](#路由)
-    
-    - [数据格式](#数据格式)
-    
-    - [参数说明](#参数说明)
-    
-    - [请求方式curl](#请求方式curl)
-    
-    - [返回结果](#返回结果)
-    
-  - [混合阶梯灰度更新](#混合阶梯灰度更新)
-    - [使用方式](#使用方式)
-    - [路由](#路由)
-    - [数据格式](#数据格式)
-    - [参数说明](#参数说明)
-    - [请求方式curl](#请求方式curl)
-    - [返回结果](#返回结果)
-    
-  - [回滚](#回滚)
-    - [使用方式](#使用方式)
-    - [路由](#路由)
-    - [数据格式](#数据格式)
-    - [参数说明](#参数说明)
-    - [请求方式curl](#请求方式curl)
-    - [返回结果](#返回结果)
+  - [RollBack回滚](#RollBack回滚)
+    - [使用方式](#RollBack使用方式)
+    - [路由](#RollBack路由)
+    - [数据格式](#RollBack数据格式)
+    - [参数说明](#RollBack参数说明)
+    - [请求方式curl](#RollBack请求方式curl)
+    - [返回结果](#RollBack返回结果)
 
 </br></br>
 
@@ -125,7 +121,7 @@ kubernetes:
 
 </br>
 
-### 即时更新
+### InstantUpdate即时更新
 
 &emsp;&emsp;即时发布，顾名思义就是新版本镜像会立即生效，更新完成的时间依据replicas、minReadySeconds和pod内部健康检查参数设置，但是总的来说deployment会接管一切，更新完成。
 
@@ -139,7 +135,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 </br>
 
-#### 使用方式
+#### InstantUpdate使用方式
 
 &emsp;&emsp;演示我使用postman对接口进行请求。
 
@@ -147,7 +143,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 </br>
 
-#### 路由
+#### InstantUpdate路由
 
 **&emsp;&emsp;/deployupdate**
 
@@ -155,7 +151,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 </br>
 
-#### 数据格式
+#### InstantUpdate数据格式
 
 &emsp;&emsp;数据为json
 
@@ -186,7 +182,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 </br>
 
-#### 参数说明
+#### InstantUpdate参数说明
 
 **不可更改参数**
 
@@ -225,7 +221,7 @@ kubectl set image deployment/nginx nginx=nginx:1.9.1
 
 </br>
 
-#### 请求方式curl
+#### InstantUpdate请求方式curl
 
 &emsp;&emsp;可以构造curl进行请求
 
@@ -258,7 +254,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 返回结果
+#### InstantUpdate返回结果
 
 当返回结果为下面信息，说明成功。
 
@@ -272,13 +268,13 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br></br>
 
-### 混合阶梯灰度更新
+### GrayUpdate混合阶梯灰度更新
 
 </br>
 
 
 
-#### 使用方式
+#### GrayUpdate使用方式
 
 &emsp;&emsp;演示我使用postman对接口进行请求。
 
@@ -286,7 +282,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 路由
+#### GrayUpdate路由
 
 **&emsp;&emsp;/graydeployupdate**
 
@@ -294,7 +290,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 数据格式
+#### GrayUpdate数据格式
 
 &emsp;&emsp;数据为json
 
@@ -332,7 +328,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 
 
-#### 参数说明
+#### GrayUpdate参数说明
 
 **不可更改参数**
 
@@ -377,7 +373,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 请求方式curl
+#### GrayUpdate请求方式curl
 
 &emsp;&emsp;可以构造curl进行请求
 
@@ -417,7 +413,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 返回结果
+#### GrayUpdate返回结果
 
 当返回结果为下面信息，说明成功。
 
@@ -431,13 +427,13 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 
 
-### 回滚
+### RollBack回滚
 
 
 
 </br>
 
-#### 使用方式
+#### RollBack使用方式
 
 &emsp;&emsp;演示我使用postman对接口进行请求。
 
@@ -445,7 +441,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 路由
+#### RollBack路由
 
 **&emsp;&emsp;/rollback**
 
@@ -453,7 +449,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 数据格式
+#### RollBack数据格式
 
 &emsp;&emsp;数据为json
 
@@ -478,7 +474,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 
 
-#### 参数说明
+#### RollBack参数说明
 
 **不可更改参数**
 
@@ -505,7 +501,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 请求方式curl
+#### RollBack请求方式curl
 
 &emsp;&emsp;可以构造curl进行请求
 
@@ -532,7 +528,7 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 </br>
 
-#### 返回结果
+#### RollBack返回结果
 
 当返回结果为下面信息，说明成功。
 
