@@ -16,6 +16,28 @@
   - [钉钉配置dingding](#钉钉配置dingding)
 - [使用](#使用)
   - [即时更新](#即时更新)
+    
+    - [使用方式](#使用方式)
+    
+    - [路由](#路由)
+    
+    - [数据格式](#数据格式)
+    
+    - [参数说明](#参数说明)
+    
+    - [请求方式curl](#请求方式curl)
+    
+    - [返回结果](#返回结果)
+    
+  - [混合阶梯灰度更新](#混合阶梯灰度更新)
+    - [使用方式](#使用方式)
+    - [路由](#路由)
+    - [数据格式](#数据格式)
+    - [参数说明](#参数说明)
+    - [请求方式curl](#请求方式curl)
+    - [返回结果](#返回结果)
+    
+  - [回滚](#回滚)
     - [使用方式](#使用方式)
     - [路由](#路由)
     - [数据格式](#数据格式)
@@ -252,11 +274,277 @@ curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '
 
 ### 混合阶梯灰度更新
 
+</br>
 
 
 
+#### 使用方式
+
+&emsp;&emsp;演示我使用postman对接口进行请求。
 
 
+
+</br>
+
+#### 路由
+
+**&emsp;&emsp;/graydeployupdate**
+
+
+
+</br>
+
+#### 数据格式
+
+&emsp;&emsp;数据为json
+
+```json
+{
+	"name": "GrayDeployment",
+	"deployment": "nginx-deployment",
+	"namespace": "default",
+	"image": "nginx:1.9.1",
+	"javaProject": "vmims",
+	"version": "1.0.1",
+	"minReadySeconds": 5,
+	"replicas": 4,
+	"sendFormat": "texts",
+	"gray": {
+		"tieredRate": "15%",
+		"durationOfStay": "3min",
+		"aVersionStepWiseUp": "55s",
+		"bVersionStepWiseUp": "45s",
+		"bVersionStepWiseDown": "37s"
+	},
+	"rollingUpdate": {
+		"maxUnavailable": "40%",
+		"maxSurge": "40%"
+	},
+	"info": {
+		"requestMan": "zhendong",
+		"updateSummary": "update for myself",
+		"phoneNumber": "17600376226"
+	}
+}
+```
+
+</br>
+
+
+
+#### 参数说明
+
+**不可更改参数**
+
+&emsp;&emsp;不能更改，否则导致程序报错。
+
+- **name:**  url唯一标识符。
+
+
+
+**必须更改参数**
+
+&emsp;&emsp;必须依据自身需求进行更改的参数，否则也可能报错。
+
+- **deployment:** 指定更新deployment名称。
+- **image:** 指定更新镜像，必须保证每个节点都有这个镜像。
+- **javaProject:** 指定镜像内部工程名称，用于钉钉消息提示。
+- **version:** 指定镜像内部工程版本，用于钉钉消息提示。
+- **sendFormat:** 指定钉钉发送消息格式。可选text（普通格式发送）；markdown格式发送
+- **gray:** 指定灰度发布参数
+  - **tieredRate:** 灰度发布比例。例如replicas=10，tieredRate=20%那么发布比例将按照2，阶梯增加，逐渐增加pod个数。
+  - **durationOfStay:** 灰度发布持续时间。当新版本启动到指定数目，**新老版本共存时间**。
+  - **aVersionStepWiseUp:** A版本阶梯增加持续时间。**老版本每增加tieredRate个pod**，持续aVersionStepWiseUp时间，然后再次增加tieredRate个pod。
+  - **bVersionStepWiseUp:** B版本阶梯增加持续时间。**新版本每增加tieredRate个pod**，持续bVersionStepWiseUp时间，然后再次增加tieredRate个pod。
+  - **bVersionStepWiseDown:** B版本阶梯递减持续时间。**老版本在镜像更新之后，就将最先启动的新版本每递减tieredRate个pod**，持续bVersionStepWiseDown时间，然后再次递减tieredRate个pod。
+- **info:** 指定此次执行更新操作人的信息。
+  - **updateSummary:** 此次更新信息。
+  - **requestMan&phoneNumber: **保证和配置文件**config.yaml**一致，因为内部会进行信息比对，手机号用于钉钉@，需要保证手机号和钉钉绑定一致。
+
+
+
+**可选更改参数**
+
+&emsp;&emsp;可以选择不上传这些参数，保持已有默认值，不存在的话，会默认创建。
+
+- **minReadySeconds:** deployment认为pod准备好对外接受请求时间。
+- **replicas:** pod个数（副本数）
+- **rollingUpdate:** 滚动更新两个参数设置，这里支持个数和百分比。
+  - **maxUnavailable:** 滚动更新时最大不可用数量。
+  - **maxSurge:** 滚动更新时最大可用数量。
+
+
+
+</br>
+
+#### 请求方式curl
+
+&emsp;&emsp;可以构造curl进行请求
+
+```shell
+APISERVER=http://127.0.0.1:8080
+
+curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '{
+	"name": "GrayDeployment",
+	"deployment": "nginx-deployment",
+	"namespace": "default",
+	"image": "nginx:1.9.1",
+	"javaProject": "vmims",
+	"version": "1.0.1",
+	"minReadySeconds": 5,
+	"replicas": 4,
+	"sendFormat": "texts",
+	"gray": {
+		"tieredRate": "15%",
+		"durationOfStay": "3min",
+		"aVersionStepWiseUp": "55s",
+		"bVersionStepWiseUp": "45s",
+		"bVersionStepWiseDown": "37s"
+	},
+	"rollingUpdate": {
+		"maxUnavailable": "40%",
+		"maxSurge": "40%"
+	},
+	"info": {
+		"requestMan": "zhendong",
+		"updateSummary": "update for myself",
+		"phoneNumber": "17600376226"
+	}
+}'
+```
+
+
+
+</br>
+
+#### 返回结果
+
+当返回结果为下面信息，说明成功。
+
+如果失败会返回响应的错误原因。
+
+```text
+[Main.GrayDeploymentUpdate] Deployment Image Update Complete!
+```
+
+</br>
+
+
+
+### 回滚
+
+
+
+</br>
+
+#### 使用方式
+
+&emsp;&emsp;演示我使用postman对接口进行请求。
+
+
+
+</br>
+
+#### 路由
+
+**&emsp;&emsp;/rollback**
+
+
+
+</br>
+
+#### 数据格式
+
+&emsp;&emsp;数据为json
+
+```json
+{
+	"name": "RollBack",
+	"deployment": "nginx-deployment",
+	"namespace": "default",
+	"image": "nginx:1.7.9",
+	"javaProject": "vmims",
+	"version": "1.0.1",
+	"sendFormat": "texts",
+	"info": {
+		"requestMan": "zhendong",
+		"updateSummary": "update for myself",
+		"phoneNumber": "17600376226"
+	}
+}
+```
+
+</br>
+
+
+
+#### 参数说明
+
+**不可更改参数**
+
+&emsp;&emsp;不能更改，否则导致程序报错。
+
+- **name:**  url唯一标识符。
+
+
+
+**必须更改参数**
+
+&emsp;&emsp;必须依据自身需求进行更改的参数，否则也可能报错。
+
+- **deployment:** 指定更新deployment名称。
+- **image:** 指定更新镜像，必须保证每个节点都有这个镜像。
+- **javaProject:** 指定镜像内部工程名称，用于钉钉消息提示。
+- **version:** 指定镜像内部工程版本，用于钉钉消息提示。
+- **sendFormat:** 指定钉钉发送消息格式。可选text（普通格式发送）；markdown格式发送
+- **info:** 指定此次执行更新操作人的信息。
+  - **updateSummary:** 此次更新信息。
+  - **requestMan&phoneNumber: **保证和配置文件**config.yaml**一致，因为内部会进行信息比对，手机号用于钉钉@，需要保证手机号和钉钉绑定一致。
+
+
+
+</br>
+
+#### 请求方式curl
+
+&emsp;&emsp;可以构造curl进行请求
+
+```shell
+APISERVER=http://127.0.0.1:8080
+
+curl $APISERVER/deployupdate -X POST -H "Content-Type:application/json" --data '{
+	"name": "RollBack",
+	"deployment": "nginx-deployment",
+	"namespace": "default",
+	"image": "nginx:1.7.9",
+	"javaProject": "vmims",
+	"version": "1.0.1",
+	"sendFormat": "texts",
+	"info": {
+		"requestMan": "zhendong",
+		"updateSummary": "update for myself",
+		"phoneNumber": "17600376226"
+	}
+}'
+```
+
+
+
+</br>
+
+#### 返回结果
+
+当返回结果为下面信息，说明成功。
+
+如果失败会返回响应的错误原因。
+
+```text
+[Main.RollBack] Deployment Rollback Successful!
+```
+
+
+
+</br></br>
 
 # Copyright & License
 
