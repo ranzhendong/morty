@@ -1,10 +1,8 @@
-
-
 # Morty
 
-![Travis (README.assets/master.svg) branch](https://img.shields.io/travis/ranzhendong/morty/master?style=plastic)
-![GitHub release (README.assets/lecter-1576747587037.svg)](https://img.shields.io/github/v/release/ranzhendong/morty?include_prereleases&style=plastic)
-![GitHub last commit (README.assets/master-1576747587023.svg)](https://img.shields.io/github/last-commit/ranzhendong/morty/master?style=plastic)
+![Travis ](https://img.shields.io/travis/ranzhendong/morty/master?style=plastic)
+![GitHub release](https://img.shields.io/github/v/release/ranzhendong/morty?include_prereleases&style=plastic)
+![GitHub last commit ](https://img.shields.io/github/last-commit/ranzhendong/morty/master?style=plastic)
 ![GitHub](https://img.shields.io/github/license/ranzhendong/morty?style=plastic)
 
 [Morty](#Morty)
