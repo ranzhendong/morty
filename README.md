@@ -1,7 +1,8 @@
 # Morty
 
-![Travis ](https://img.shields.io/travis/ranzhendong/morty/master?style=plastic)
-![GitHub release](https://img.shields.io/github/v/release/ranzhendong/morty?include_prereleases&style=plastic)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ranzhendong/morty/MortyCI?label=GithubBuild&logo=github&style=plastic)
+![Travis (.org) branch](https://img.shields.io/travis/ranzhendong/morty?label=TravisBulid&logo=travis&style=plastic)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ranzhendong/morty?include_prereleases&style=plastic)
 ![GitHub last commit ](https://img.shields.io/github/last-commit/ranzhendong/morty/master?style=plastic)
 ![GitHub](https://img.shields.io/github/license/ranzhendong/morty?style=plastic)
 
